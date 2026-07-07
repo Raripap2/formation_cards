@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список металлических листов</title>
+    <style>
+        /* Индустриальные стили ЛПЦ-1 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #111827;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .container {
+            padding: 24px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            flex: 1;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #111827;
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #22252a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            background-color: #ffffff;
+            color: #374151;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.1s ease;
+        }
+        .btn:hover { background-color: #f3f4f6; }
+
+        .btn-primary { background-color: #22252a; color: #ffffff; border-color: #22252a; }
+        .btn-primary:hover { background-color: #111316; }
+
+        .filter-panel {
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-weight: 700; margin-bottom: 6px; font-size: 12px; color: #4b5563; text-transform: uppercase; }
+        .filter-group input, .filter-group select {
+            padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background-color: #ffffff; color: #111827;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none; border-color: #f25c22; box-shadow: 0 0 0 2px rgba(242, 92, 34, 0.1);
+        }
+        .filter-actions { grid-column: 1 / -1; display: flex; margin-top: 4px; }
+
+        .table-container { overflow-x: auto; border: 1px solid #d1d5db; border-radius: 4px; }
+        .data-table { width: 100%; border-collapse: collapse; background-color: #ffffff; }
+        .data-table th, .data-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        .data-table th { background-color: #22252a; font-weight: 600; color: #ffffff; font-size: 12px; text-transform: uppercase; }
+        .data-table tbody tr { transition: background-color 0.1s; cursor: pointer; }
+        .data-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .data-table tbody tr:hover { background-color: #f3f4f6; box-shadow: inset 3px 0 0 #f25c22; }
+
+        .scroll-to-top {
+            position: fixed; bottom: 30px; right: 30px; width: 45px; height: 45px;
+            background-color: #22252a; color: white; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 4px; font-size: 18px; border: none; z-index: 100;
+        }
+        .scroll-to-top:hover { background-color: #f25c22; }
+
+        .loading, .error, .loading-more { text-align: center; padding: 15px; color: #4b5563; font-weight: 600; }
+        .error { color: #c5221f; }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1>Складской перечень листов</h1>
+
+        <div class="filter-panel">
+            <div class="filter-group"><label>ID листа:</label><input type="text" id="filterSheetId" placeholder="Поиск по ID"></div>
+            <div class="filter-group"><label>Марка стали:</label><input type="text" id="filterGrade" placeholder="Марка"></div>
+            <div class="filter-group"><label>Номер плавки:</label><input type="text" id="filterHeat" placeholder="Плавка"></div>
+            <div class="filter-group"><label>Толщина (мм):</label><input type="text" id="filterPlateT" placeholder="Толщина"></div>
+            <div class="filter-group"><label>Ширина (мм):</label><input type="text" id="filterPlateW" placeholder="Ширина"></div>
+            <div class="filter-group"><label>Длина (мм):</label><input type="text" id="filterPlateL" placeholder="Длина"></div>
+            <div class="filter-group"><label>Номер 1:</label><input type="text" id="filterNum1" placeholder="Num 1"></div>
+            <div class="filter-group"><label>SB Order:</label><input type="text" id="filterSbOrder" placeholder="SB Order"></div>
+            <div class="filter-group">
+                <label>Сортировать по:</label>
+                <select id="sortField">
+                    <option value="sheet_id">ID листа</option>
+                    <option value="grade">Марка</option>
+                    <option value="heat">Плавка</option>
+                    <option value="plate_t">Толщина</option>
+                    <option value="plate_w">Ширина</option>
+                    <option value="plate_l">Длина</option>
+                    <option value="num_1">Номер 1</option>
+                    <option value="sb_order">SB Order</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Порядок:</label>
+                <select id="sortDirection">
+                    <option value="asc">Возрастание</option>
+                    <option value="desc">Убывание</option>
+                </select>
+            </div>
+            <div class="filter-actions"><button class="btn btn-primary" id="applyFilters">Применить фильтры</button></div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID Листа</th>
+                        <th>Марка</th>
+                        <th>Плавка</th>
+                        <th>Размеры (Т×Ш×Д)</th>
+                        <th>Объем (мм³)</th>
+                        <th>Номер 1</th>
+                        <th>SB Order</th>
+                    </tr>
+                </thead>
+                <tbody id="sheetsContainer">
+                    <tr><td colspan="7" class="loading">Загрузка данных...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="loadingMoreIndicator" class="loading-more" style="display: none;">Загрузка...</div>
+    </div>
+
+    <button class="scroll-to-top" id="scrollToTop" title="Наверх">▲</button>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        async function loadComponents() {
+            try {
+                const headerRes = await fetch('/static/components/header.html');
+                if (headerRes.ok) document.getElementById('header-placeholder').innerHTML = await headerRes.text();
+
+                const footerRes = await fetch('/static/components/footer.html');
+                if (footerRes.ok) document.getElementById('footer-placeholder').innerHTML = await footerRes.text();
+            } catch (e) { console.error(e); }
+        }
+
+        let currentPage = 1;
+        const pageSize = 25;
+        let currentSortField = 'sheet_id';
+        let currentSortDirection = 'asc';
+        let isLoading = false;
+        let hasMore = true;
+
+        async function fetchSheets(page = 1) {
+            try {
+                isLoading = true;
+                if (page > 1) document.getElementById('loadingMoreIndicator').style.display = 'block';
+
+                const requestBody = {
+                    fields: ['sheet_id', 'plate_t', 'plate_w', 'plate_l', 'grade', 'heat', 'num_1', 'sb_order'],
+                    page_number: page, page_size: pageSize, order_by: currentSortField, order_direction: currentSortDirection
+                };
+
+                const filters = getFilters();
+                if (Object.keys(filters).length > 0) requestBody.filters = filters;
+
+                const response = await fetch('/api/sheets/get_with_filtres', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                const data = await response.json();
+                hasMore = data.length === pageSize;
+                return data;
+            } catch (error) {
+                console.error(error); return null;
+            } finally {
+                isLoading = false;
+                document.getElementById('loadingMoreIndicator').style.display = 'none';
+            }
+        }
+
+        function getFilters() {
+            const filters = {};
+            const fields = ['sheetId', 'grade', 'heat', 'plateT', 'plateW', 'plateL', 'num1', 'sbOrder'];
+            const map = { sheetId: 'sheet_id', grade: 'grade', heat: 'heat', plateT: 'plate_t', plateW: 'plate_w', plateL: 'plate_l', num1: 'num_1', sbOrder: 'sb_order' };
+
+            fields.forEach(f => {
+                const val = document.getElementById(`filter${f.charAt(0).toUpperCase() + f.slice(1)}`).value.trim();
+                if (val) filters[map[f]] = val;
+            });
+            return filters;
+        }
+
+        async function loadSheets(reset = false) {
+            const tbody = document.getElementById('sheetsContainer');
+            if (reset) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">Загрузка данных...</td></tr>';
+                currentPage = 1; hasMore = true;
+            }
+            try {
+                const sheets = await fetchSheets(currentPage);
+                if (!sheets || sheets.length === 0) {
+                    if (reset) tbody.innerHTML = '<tr><td colspan="7" class="error">Листы не найдены</td></tr>';
+                    hasMore = false; return;
+                }
+                if (reset) tbody.innerHTML = '';
+                sheets.forEach(sheet => tbody.appendChild(createSheetRow(sheet)));
+                currentPage++;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="error">Ошибка: ${error.message}</td></tr>`;
+            }
+        }
+
+        function createSheetRow(sheet) {
+            const tr = document.createElement('tr');
+            tr.onclick = () => window.location.href = `/html/current_sheet/?id=${sheet.sheet_id}`;
+            const volume = (sheet.plate_t * sheet.plate_w * sheet.plate_l).toFixed(2);
+
+            tr.innerHTML = `
+                <td><strong>${sheet.sheet_id || '—'}</strong></td>
+                <td>${sheet.grade || '—'}</td>
+                <td>${sheet.heat || '—'}</td>
+                <td>${sheet.plate_t || 0} × ${sheet.plate_w || 0} × ${sheet.plate_l || 0}</td>
+                <td>${volume}</td>
+                <td>${sheet.num_1 || '—'}</td>
+                <td>${sheet.sb_order || '—'}</td>
+            `;
+            return tr;
+        }
+
+        function isScrollNearBottom() {
+            return (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponents();
+            loadSheets(true);
+            window.addEventListener('scroll', () => {
+                if (isScrollNearBottom() && !isLoading && hasMore) loadSheets(false);
+            });
+        });
+
+        document.getElementById('scrollToTop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        document.getElementById('applyFilters').addEventListener('click', () => {
+            currentSortField = document.getElementById('sortField').value;
+            currentSortDirection = document.getElementById('sortDirection').value;
+            loadSheets(true);
+        });
+    </script>
+</body>
+</html>

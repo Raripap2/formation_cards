@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Закрытые формировочные карточки</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #1a1a1a; --bg-secondary: #2d2d2d; --bg-card: #2d2d2d;
+            --text-primary: #ffffff; --text-secondary: #b0b0b0; --text-muted: #808080;
+            --border-color: #404040; --primary-color: #ff6b00; --primary-hover: #e06000;
+            --success-color: #28a745; --warning-color: #ffc107; --danger-color: #dc3545;
+            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            --table-header-bg: #333333; --table-row-hover: #3d3d3d;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3);
+            --fc-header-text: #e0e0e0;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5; --bg-secondary: #ffffff; --bg-card: #ffffff;
+            --text-primary: #1a1a1a; --text-secondary: #555555; --text-muted: #888888;
+            --border-color: #e0e0e0; --primary-color: #ff6b00; --primary-hover: #e06000;
+            --success-color: #28a745; --warning-color: #ffc107; --danger-color: #dc3545;
+            --header-bg: linear-gradient(135deg, #2d2d2d 0%, #4a4a4a 100%);
+            --table-header-bg: #f0f0f0; --table-row-hover: #f9f9f9;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05);
+            --fc-header-text: #666666;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); transition: all 0.3s ease; font-size: 15px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .card-animate { animation: fadeIn 0.3s ease-out; }
+        .header { background: var(--header-bg); color: white; padding: 1rem 2rem; box-shadow: var(--shadow-lg); position: sticky; top: 0; z-index: 100; }
+        .header-content { max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+        .header h1 i { font-size: 1.8rem; color: var(--primary-color); }
+        .theme-toggle { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.95rem; }
+        .theme-toggle:hover { background: rgba(255,255,255,0.2); }
+        .main-layout { display: flex; gap: 1.5rem; max-width: 1600px; margin: 1.5rem auto; padding: 0 1.5rem; }
+        .content-area { flex: 3; min-width: 0; }
+        .sidebar { flex: 1; min-width: 300px; position: sticky; top: 80px; height: fit-content; max-height: calc(100vh - 100px); overflow-y: auto; }
+        .filters-card { background: var(--bg-card); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
+        .filter-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .filter-group label { font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        .filter-group input { padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .filter-group input:focus { outline: none; border-color: var(--primary-color); }
+        .sort-bar { margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+        .sort-bar label { font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        .sort-bar select { padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .sort-bar button { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
+        .cards-table { background: var(--bg-card); border-radius: 0.75rem; overflow-x: auto; box-shadow: var(--shadow-md); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.8rem; background: var(--table-header-bg); font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border-color); font-size: 0.95rem; cursor: pointer; user-select: none; }
+        th:hover { background: var(--table-row-hover); }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; font-size: 0.95rem; }
+        tr:hover td { background: var(--table-row-hover); }
+        .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.4rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; font-size: 0.9rem; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--table-row-hover); }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-success:hover { background: #218838; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger-color); color: white; border: none; }
+        .btn-danger:hover { background: #c82333; transform: translateY(-1px); }
+        .btn-sm { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+        .fc-card { background: var(--bg-card); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow-lg); }
+        .fc-header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-bottom: 2px solid var(--primary-color); padding: 1.25rem; }
+        .fc-header h2 { font-size: 1.6rem; margin-bottom: 0.25rem; color: white; }
+        .fc-header-sub { color: var(--fc-header-text); font-size: 0.95rem; font-weight: 500; }
+        .info-wrapper { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .main-info { flex: 2; background: var(--bg-primary); border-radius: 0.75rem; padding: 1rem; }
+        .worker-info { flex: 1; background: var(--bg-primary); border-radius: 0.75rem; padding: 1rem; }
+        .info-section h3 { margin-bottom: 0.8rem; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
+        .fc-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.5rem; }
+        .fc-info-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        .fc-info-label { font-weight: 600; color: var(--text-secondary); }
+        .fc-info-value { font-weight: 500; }
+        .sheets-section { padding: 1rem; }
+        .sheets-table-container { overflow-x: auto; margin-top: 0.8rem; }
+        .sheets-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .sheets-table th, .sheets-table td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .sheets-table th { background: var(--table-header-bg); font-weight: 600; }
+        .sheets-table tr:hover { background: var(--table-row-hover); }
+        .sheet-link { color: var(--primary-color); cursor: pointer; text-decoration: none; font-weight: 500; }
+        .sheet-link:hover { text-decoration: underline; }
+        .sheet-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+        .modal { background: var(--bg-card); border-radius: 0.75rem; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-lg { max-width: 1400px; width: 95%; }
+        .modal-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-card); z-index: 10; }
+        .modal-body { padding: 1rem; }
+        .modal-footer { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.8rem; position: sticky; bottom: 0; background: var(--bg-card); }
+        .form-group { margin-bottom: 0.8rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; font-weight: 500; color: var(--text-secondary); font-size: 0.9rem; }
+        .form-group input, .form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .logs-sidebar { background: var(--bg-card); border-radius: 0.75rem; padding: 1rem; box-shadow: var(--shadow-md); }
+        .logs-sidebar h3 { margin-bottom: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
+        .logs-list { max-height: 500px; overflow-y: auto; }
+        .log-item { border-left: 3px solid var(--primary-color); padding: 0.6rem; margin-bottom: 0.6rem; background: var(--bg-primary); border-radius: 0.4rem; font-size: 0.85rem; }
+        .log-time { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+        .log-user { font-weight: 600; color: var(--primary-color); font-size: 0.85rem; margin-bottom: 0.3rem; }
+        .log-changes { margin-top: 0.3rem; font-size: 0.8rem; }
+        .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background: var(--success-color); color: white; }
+        .other-fc-container { margin-top: 1rem; padding: 1rem; background: var(--bg-primary); border-radius: 0.6rem; text-align: center; }
+        .other-fc-container h4 { margin-bottom: 0.8rem; color: var(--text-secondary); font-size: 0.95rem; }
+        .other-fc-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; }
+        .other-fc-btn { padding: 0.6rem 1.2rem; background: var(--primary-color); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; }
+        .other-fc-btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .edit-sheets-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.5rem; }
+        .edit-sheets-table th, .edit-sheets-table td { padding: 0.3rem; border: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+        .edit-sheets-table input { width: 100%; padding: 0.2rem; font-size: 0.8rem; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 0.3rem; }
+        .sort-indicator { margin-left: 0.25rem; font-size: 0.75rem; }
+        .loading { display: flex; justify-content: center; align-items: center; height: 400px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 0.8rem; }
+        @media (max-width: 1024px) { .main-layout { flex-direction: column; } .sidebar { position: static; max-height: none; } }
+        @media (max-width: 768px) {
+            .main-layout { padding: 0 1rem; margin: 1rem auto; }
+            .header { padding: 0.8rem 1rem; }
+            .header h1 { font-size: 1.2rem; }
+            .fc-header h2 { font-size: 1.3rem; }
+            .filters-grid { grid-template-columns: 1fr; }
+            th, td { padding: 0.5rem; font-size: 0.85rem; }
+            .info-wrapper { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script>
+        const React = window.React;
+        const ReactDOM = window.ReactDOM;
+        const { useState, useEffect } = React;
+
+        const WORKER_ID = 1;
+        const WORKER_NAME = "Иванов И.И.";
+
+        let changeLogs = [];
+
+        // ============= API ФУНКЦИИ (УПРОЩЕННЫЕ) =============
+
+        // Получение списка ФК с фильтрами
+        async function fetchFormationCardsList(filters = {}) {
+            try {
+                const requestBody = {
+                    fields: [
+                        'card_id', 'order_id', 'way', 'closed', 'deleted',
+                        'fc_gost_tt', 'fc_gost_xa', 'fc_gost_sort',
+                        'shipment_date', 'batch', 'grade', 'position', 'created_date'
+                    ],
+                    filters: filters,
+                    order_by: 'card_id',
+                    order_direction: 'ASC',
+                    page_size: 1000,
+                    page_number: 1
+                };
+
+                console.log('Запрос списка ФК:', requestBody);
+
+                const response = await fetch(`/api/formation_cards/get`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Ошибка сервера:', errorText);
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Получено карточек:', data?.length || 0);
+
+                return Array.isArray(data) ? data.filter(card => card.closed === true && card.deleted !== true) : [];
+            } catch (error) {
+                console.error('Ошибка при получении карточек:', error);
+                throw error;
+            }
+        }
+
+        // Получение данных конкретной ФК
+        async function fetchCardData(cardId) {
+            if (!cardId) throw new Error('ID карты не указан');
+            try {
+                const response = await fetch(`/api/formation_cards/get/${cardId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Ошибка при получении карточки:', error);
+                throw error;
+            }
+        }
+
+        // Получение листов для конкретной ФК
+        async function fetchSheetsData(cardId) {
+            try {
+                const response = await fetch(`/api/formation_cards/get/${cardId}/sheets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Ошибка при получении листов:', error);
+                return [];
+            }
+        }
+
+        // Получение информации о работнике
+        async function fetchWorkerInfo(workerId) {
+            try {
+                const response = await fetch(`/api/workers/get/${workerId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) return null;
+                return await response.json();
+            } catch (error) {
+                console.error('Ошибка при получении данных работника:', error);
+                return null;
+            }
+        }
+
+        // Удаление листа из карты
+        async function deleteSheetFromCard(cardId, sheetId, sheetData, reason) {
+            if (!reason || !reason.trim()) { alert('Пожалуйста, укажите причину удаления'); return false; }
+            if (!confirm(`Вы уверены, что хотите удалить лист ${sheetId} из карты?`)) return false;
+            try {
+                const response = await fetch(`/api/formation_cards/delete_sheet?card_id=${cardId}&sheet_id=${sheetId}&worker_id=${WORKER_ID}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    addLog(cardId, 'delete_sheet', { sheet_id: sheetId, message: reason });
+                    alert('Лист удален из карты');
+                    return true;
+                } else throw new Error('Ошибка при удалении листа');
+            } catch (error) { alert(error.message); return false; }
+        }
+
+        // Перемещение листа в другую ФК
+        async function moveSheetToCard(sheetId, targetCardId, sourceCardId, reason) {
+            if (!reason || !reason.trim()) { alert('Пожалуйста, укажите причину перемещения'); return false; }
+            if (!confirm(`Переместить лист ${sheetId} в ФК №${targetCardId}?`)) return false;
+            try {
+                const response = await fetch(`/api/formation_cards/move_sheet`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sheet_id: sheetId,
+                        source_card_id: sourceCardId,
+                        target_card_id: targetCardId,
+                        worker_id: WORKER_ID,
+                        reason: reason
+                    })
+                });
+                if (response.ok) {
+                    addLog(sourceCardId, 'move_sheet', { sheet_id: sheetId, from_card: sourceCardId, to_card: targetCardId, message: reason });
+                    alert('Лист перемещен');
+                    return true;
+                } else throw new Error('Ошибка при перемещении листа');
+            } catch (error) { alert(error.message); return false; }
+        }
+
+        // Обновление данных ФК
+        async function updateFormationCard(cardId, oldData, newData, sheetsData, message) {
+            if (!message) { alert('Пожалуйста, укажите причину изменения'); return false; }
+            try {
+                const response = await fetch(`/api/formation_cards/edit/${cardId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        worker_id: WORKER_ID,
+                        message: message,
+                        params: newData,
+                        sheets: sheetsData
+                    })
+                });
+                if (response.ok) {
+                    const changes = [];
+                    for (const [key, newValue] of Object.entries(newData)) {
+                        const oldValue = oldData[key];
+                        if (oldValue != newValue) changes.push({ field: key, old: oldValue || '—', new: newValue || '—' });
+                    }
+                    addLog(cardId, 'edit', { changes, message });
+                    alert('Изменения сохранены');
+                    return true;
+                } else throw new Error('Ошибка при сохранении изменений');
+            } catch (error) { alert(error.message); return false; }
+        }
+
+        function addLog(cardId, action, changes) {
+            changeLogs.unshift({
+                log_id: Date.now(),
+                card_id: cardId,
+                worker_name: WORKER_NAME,
+                log_date: new Date().toISOString(),
+                action: action,
+                changes: changes
+            });
+        }
+
+        // ============= ОСНОВНОЙ КОМПОНЕНТ =============
+        function App() {
+            const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+            const [selectedCard, setSelectedCard] = useState(null);
+            const [filters, setFilters] = useState({ card_id: '', order_id: '', grade: '', position: '' });
+            const [sortBy, setSortBy] = useState({ field: 'card_id', direction: 'ASC' });
+            const [sheets, setSheets] = useState([]);
+            const [workerInfo, setWorkerInfo] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [cards, setCards] = useState([]);
+            const [error, setError] = useState(null);
+            const [viewSheetDetail, setViewSheetDetail] = useState(null);
+            const [otherCards, setOtherCards] = useState([]);
+            const [sheetsCount, setSheetsCount] = useState({});
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [showLogs, setShowLogs] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [editForm, setEditForm] = useState({});
+            const [editSheets, setEditSheets] = useState([]);
+            const [editMessage, setEditMessage] = useState('');
+            const [showDeleteReasonModal, setShowDeleteReasonModal] = useState(null);
+            const [deleteReason, setDeleteReason] = useState('');
+            const [pendingDeleteSheet, setPendingDeleteSheet] = useState(null);
+            const [showMoveReasonModal, setShowMoveReasonModal] = useState(null);
+            const [moveReason, setMoveReason] = useState('');
+            const [pendingMoveData, setPendingMoveData] = useState(null);
+
+            useEffect(() => {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            }, [theme]);
+
+            const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+            useEffect(() => {
+                loadCards();
+            }, []);
+
+            const loadCards = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const apiFilters = {};
+                    if (filters.card_id) apiFilters.card_id = parseInt(filters.card_id);
+                    if (filters.order_id) apiFilters.order_id = parseInt(filters.order_id);
+                    if (filters.grade) apiFilters.grade = filters.grade;
+                    if (filters.position) apiFilters.position = filters.position;
+
+                    Object.keys(apiFilters).forEach(key => {
+                        if (apiFilters[key] === undefined || apiFilters[key] === '' || isNaN(apiFilters[key])) delete apiFilters[key];
+                    });
+
+                    const data = await fetchFormationCardsList(apiFilters);
+                    setCards(data);
+
+                    const counts = {};
+                    for (const card of data) {
+                        try {
+                            const sheetsData = await fetchSheetsData(card.card_id);
+                            counts[card.card_id] = sheetsData.length;
+                        } catch(e) { counts[card.card_id] = 0; }
+                    }
+                    setSheetsCount(counts);
+                } catch (err) {
+                    setError(err.message || 'Не удалось загрузить данные');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadCardDetails = async (cardId) => {
+                setLoading(true);
+                try {
+                    const cardData = await fetchCardData(cardId);
+                    const sheetsData = await fetchSheetsData(cardId);
+                    const worker = await fetchWorkerInfo(WORKER_ID);
+
+                    setSelectedCard(cardData);
+                    setSheets(sheetsData);
+                    setWorkerInfo(worker);
+                    setLogs(changeLogs.filter(log => log.card_id === cardId));
+
+                    const allCards = await fetchFormationCardsList({ order_id: cardData.order_id });
+                    setOtherCards(allCards.filter(c => c.card_id !== cardId));
+                } catch (err) {
+                    setError(err.message || 'Не удалось загрузить детали карточки');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDeleteSheet = (sheet) => {
+                setPendingDeleteSheet(sheet);
+                setDeleteReason('');
+                setShowDeleteReasonModal(true);
+            };
+
+            const confirmDeleteSheet = async () => {
+                if (!deleteReason.trim()) { alert('Пожалуйста, укажите причину удаления'); return; }
+                const success = await deleteSheetFromCard(selectedCard.card_id, pendingDeleteSheet.sheet_id, pendingDeleteSheet, deleteReason);
+                if (success) {
+                    const updatedSheets = sheets.filter(s => s.sheet_id !== pendingDeleteSheet.sheet_id);
+                    setSheets(updatedSheets);
+                    setSheetsCount(prev => ({ ...prev, [selectedCard.card_id]: updatedSheets.length }));
+                    setLogs(changeLogs.filter(log => log.card_id === selectedCard.card_id));
+                    setShowDeleteReasonModal(false);
+                    setPendingDeleteSheet(null);
+                }
+            };
+
+            const handleMoveSheet = (sheet, targetCardId) => {
+                setPendingMoveData({ sheet, targetCardId });
+                setMoveReason('');
+                setShowMoveReasonModal(true);
+            };
+
+            const confirmMoveSheet = async () => {
+                if (!moveReason.trim()) { alert('Пожалуйста, укажите причину перемещения'); return; }
+                const success = await moveSheetToCard(pendingMoveData.sheet.sheet_id, pendingMoveData.targetCardId, selectedCard.card_id, moveReason);
+                if (success) {
+                    const updatedSheets = sheets.filter(s => s.sheet_id !== pendingMoveData.sheet.sheet_id);
+                    setSheets(updatedSheets);
+                    setSheetsCount(prev => ({
+                        ...prev,
+                        [selectedCard.card_id]: updatedSheets.length,
+                        [pendingMoveData.targetCardId]: (prev[pendingMoveData.targetCardId] || 0) + 1
+                    }));
+                    setLogs(changeLogs.filter(log => log.card_id === selectedCard.card_id));
+                    setShowMoveReasonModal(false);
+                    setPendingMoveData(null);
+                }
+            };
+
+            const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
+
+            const applyFilters = () => loadCards();
+
+            const resetFilters = () => {
+                setFilters({ card_id: '', order_id: '', grade: '', position: '' });
+                setSortBy({ field: 'card_id', direction: 'ASC' });
+                setTimeout(() => loadCards(), 100);
+            };
+
+            const handleSortChange = (e) => {
+                const [field, direction] = e.target.value.split('|');
+                setSortBy({ field, direction });
+                loadCards();
+            };
+
+            const selectCard = async (card) => await loadCardDetails(card.card_id);
+            const backToList = () => {
+                setSelectedCard(null);
+                setSheets([]);
+                setWorkerInfo(null);
+                setOtherCards([]);
+                setViewSheetDetail(null);
+                setShowLogs(false);
+            };
+
+            const openEditModal = async () => {
+                const currentSheets = [...sheets];
+                setEditForm({
+                    order_id: selectedCard.order_id || '', way: selectedCard.way || '', fc_gost_tt: selectedCard.fc_gost_tt || '',
+                    fc_gost_xa: selectedCard.fc_gost_xa || '', fc_gost_sort: selectedCard.fc_gost_sort || '',
+                    shipment_date: selectedCard.shipment_date ? selectedCard.shipment_date.split('T')[0] : '',
+                    wagon_num: selectedCard.wagon_num || '', certificate: selectedCard.certificate || '',
+                    grade: selectedCard.grade || '', batch: selectedCard.batch || '', position: selectedCard.position || ''
+                });
+                setEditSheets(JSON.parse(JSON.stringify(currentSheets)));
+                setEditMessage('');
+                setShowEditModal(true);
+            };
+
+            const handleAddSheet = () => {
+                setEditSheets([...editSheets, {
+                    sheet_id: "", marking_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    num_1: "", cut_part_num: "", grade: "", plate_t: "", plate_w: "", plate_l: "",
+                    heat: "", batch: "", carb_eqiv: "", crack_resist: "", tech_violation_code: ""
+                }]);
+            };
+
+            const handleUpdateSheet = (index, field, value) => {
+                const updatedSheets = [...editSheets];
+                updatedSheets[index][field] = value;
+                setEditSheets(updatedSheets);
+            };
+
+            const handleRemoveSheet = (index) => setEditSheets(editSheets.filter((_, i) => i !== index));
+
+            const handleSaveChanges = async () => {
+                const newData = {};
+                const fields = ['order_id', 'way', 'fc_gost_tt', 'fc_gost_xa', 'fc_gost_sort',
+                               'shipment_date', 'wagon_num', 'certificate', 'grade', 'batch', 'position'];
+                fields.forEach(field => {
+                    if (editForm[field] !== (selectedCard[field] || '')) newData[field] = editForm[field] || null;
+                });
+
+                const oldData = { ...selectedCard };
+                const invalidSheets = editSheets.filter(s => !s.sheet_id);
+                if (invalidSheets.length > 0) { alert('У всех листов должен быть заполнен ID листа'); return; }
+
+                const success = await updateFormationCard(selectedCard.card_id, oldData, newData, editSheets, editMessage);
+                if (success) {
+                    setShowEditModal(false);
+                    const updatedCard = { ...selectedCard, ...editForm };
+                    setSelectedCard(updatedCard);
+                    setSheets(editSheets);
+                    setSheetsCount(prev => ({ ...prev, [selectedCard.card_id]: editSheets.length }));
+                    setLogs(changeLogs.filter(log => log.card_id === selectedCard.card_id));
+                }
+            };
+
+            if (loading && !selectedCard) {
+                return React.createElement("div", { className: "loading" },
+                    React.createElement("div", { className: "spinner" })
+                );
+            }
+
+            if (error && !selectedCard) {
+                return React.createElement("div", { className: "container" },
+                    React.createElement("div", { className: "empty-state" },
+                        React.createElement("i", { className: "fas fa-exclamation-triangle", style: { color: 'var(--danger-color)' } }),
+                        React.createElement("h2", null, "Ошибка загрузки данных"),
+                        React.createElement("p", null, error),
+                        React.createElement("button", { className: "btn btn-primary", onClick: loadCards, style: { marginTop: '1rem' } },
+                            React.createElement("i", { className: "fas fa-sync-alt" }), " Повторить попытку"
+                        )
+                    )
+                );
+            }
+
+            // Модальное окно причины удаления
+            if (showDeleteReasonModal) {
+                return React.createElement("div", { className: "modal-overlay", onClick: () => { setShowDeleteReasonModal(false); setPendingDeleteSheet(null); } },
+                    React.createElement("div", { className: "modal", onClick: (e) => e.stopPropagation() },
+                        React.createElement("div", { className: "modal-header" },
+                            React.createElement("h3", null, "Удаление листа"),
+                            React.createElement("button", { className: "btn-outline", onClick: () => { setShowDeleteReasonModal(false); setPendingDeleteSheet(null); } }, "✕")
+                        ),
+                        React.createElement("div", { className: "modal-body" },
+                            React.createElement("div", { className: "form-group" },
+                                React.createElement("label", null, "Причина удаления *"),
+                                React.createElement("textarea", { rows: "3", placeholder: "Обязательно для заполнения", value: deleteReason, onChange: (e) => setDeleteReason(e.target.value) })
+                            )
+                        ),
+                        React.createElement("div", { className: "modal-footer" },
+                            React.createElement("button", { className: "btn btn-outline", onClick: () => { setShowDeleteReasonModal(false); setPendingDeleteSheet(null); } }, "Отмена"),
+                            React.createElement("button", { className: "btn btn-danger", onClick: confirmDeleteSheet }, "Удалить")
+                        )
+                    )
+                );
+            }
+
+            // Модальное окно причины перемещения
+            if (showMoveReasonModal) {
+                return React.createElement("div", { className: "modal-overlay", onClick: () => { setShowMoveReasonModal(false); setPendingMoveData(null); } },
+                    React.createElement("div", { className: "modal", onClick: (e) => e.stopPropagation() },
+                        React.createElement("div", { className: "modal-header" },
+                            React.createElement("h3", null, "Перемещение листа"),
+                            React.createElement("button", { className: "btn-outline", onClick: () => { setShowMoveReasonModal(false); setPendingMoveData(null); } }, "✕")
+                        ),
+                        React.createElement("div", { className: "modal-body" },
+                            React.createElement("div", { className: "form-group" },
+                                React.createElement("label", null, "Причина перемещения *"),
+                                React.createElement("textarea", { rows: "3", placeholder: "Обязательно для заполнения", value: moveReason, onChange: (e) => setMoveReason(e.target.value) })
+                            )
+                        ),
+                        React.createElement("div", { className: "modal-footer" },
+                            React.createElement("button", { className: "btn btn-outline", onClick: () => { setShowMoveReasonModal(false); setPendingMoveData(null); } }, "Отмена"),
+                            React.createElement("button", { className: "btn btn-primary", onClick: confirmMoveSheet }, "Переместить")
+                        )
+                    )
+                );
+            }
+
+            // Модальное окно просмотра деталей листа
+            if (viewSheetDetail) {
+                return React.createElement("div", { className: "modal-overlay", onClick: () => setViewSheetDetail(null) },
+                    React.createElement("div", { className: "modal", onClick: (e) => e.stopPropagation() },
+                        React.createElement("div", { className: "modal-header" },
+                            React.createElement("h3", null, "Детальная информация о листе ", viewSheetDetail.sheet_id),
+                            React.createElement("button", { className: "btn-outline", onClick: () => setViewSheetDetail(null) }, "✕")
+                        ),
+                        React.createElement("div", { className: "modal-body" },
+                            React.createElement("div", { className: "detail-grid", style: { display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.8rem' } },
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "ID листа"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.sheet_id || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Номер плавки"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.heat || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Марка стали"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.grade || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Номер партии"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.batch || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Длина, мм"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.plate_l || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Ширина, мм"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.plate_w || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Толщина, мм"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.plate_t || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Номер первого листа"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.num_1 || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Дата и время маркировки"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.marking_time || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Номер части при порезке"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.cut_part_num || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Код нарушения технологии"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.tech_violation_code || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Углеродный эквивалент"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.carb_eqiv || '—')),
+                                React.createElement("div", { className: "detail-item" }, React.createElement("div", { className: "detail-label" }, "Устойчивость на излом"), React.createElement("div", { className: "detail-value" }, viewSheetDetail.crack_resist || '—'))
+                            )
+                        ),
+                        React.createElement("div", { className: "modal-footer" },
+                            React.createElement("button", { className: "btn btn-primary", onClick: () => setViewSheetDetail(null) }, "Закрыть")
+                        )
+                    )
+                );
+            }
+
+            // Модальное окно редактирования ФК
+            if (showEditModal) {
+                return React.createElement("div", { className: "modal-overlay", onClick: () => setShowEditModal(false) },
+                    React.createElement("div", { className: "modal modal-lg", onClick: (e) => e.stopPropagation() },
+                        React.createElement("div", { className: "modal-header" },
+                            React.createElement("h3", null, "Редактирование ФК №" + selectedCard?.card_id),
+                            React.createElement("button", { className: "btn-outline", onClick: () => setShowEditModal(false) }, "✕")
+                        ),
+                        React.createElement("div", { className: "modal-body" },
+                            React.createElement("h4", null, "Основная информация"),
+                            React.createElement("div", { className: "edit-form-grid", style: { display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.8rem' } },
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Номер заказа"), React.createElement("input", { type: "text", value: editForm.order_id || '', onChange: (e) => setEditForm({...editForm, order_id: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Направление"), React.createElement("input", { type: "text", value: editForm.way || '', onChange: (e) => setEditForm({...editForm, way: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "ГОСТ ТТ"), React.createElement("input", { type: "text", value: editForm.fc_gost_tt || '', onChange: (e) => setEditForm({...editForm, fc_gost_tt: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "ГОСТ ХА"), React.createElement("input", { type: "text", value: editForm.fc_gost_xa || '', onChange: (e) => setEditForm({...editForm, fc_gost_xa: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "ГОСТ Сорт"), React.createElement("input", { type: "text", value: editForm.fc_gost_sort || '', onChange: (e) => setEditForm({...editForm, fc_gost_sort: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Дата отгрузки"), React.createElement("input", { type: "date", value: editForm.shipment_date || '', onChange: (e) => setEditForm({...editForm, shipment_date: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Номер вагона"), React.createElement("input", { type: "text", value: editForm.wagon_num || '', onChange: (e) => setEditForm({...editForm, wagon_num: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Сертификат"), React.createElement("input", { type: "text", value: editForm.certificate || '', onChange: (e) => setEditForm({...editForm, certificate: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Марка стали"), React.createElement("input", { type: "text", value: editForm.grade || '', onChange: (e) => setEditForm({...editForm, grade: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Партия"), React.createElement("input", { type: "text", value: editForm.batch || '', onChange: (e) => setEditForm({...editForm, batch: e.target.value}) })),
+                                React.createElement("div", { className: "form-group" }, React.createElement("label", null, "Позиция"), React.createElement("input", { type: "text", value: editForm.position || '', placeholder: "XX-XX", onChange: (e) => setEditForm({...editForm, position: e.target.value}) }))
+                            ),
+                            React.createElement("div", { style: { marginTop: '1.5rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                                React.createElement("h4", null, "Листы"),
+                                React.createElement("button", { className: "btn btn-success btn-sm", onClick: handleAddSheet }, React.createElement("i", { className: "fas fa-plus" }), " Добавить лист")
+                            ),
+                            React.createElement("div", { className: "sheets-table-container", style: { maxHeight: '400px', overflowY: 'auto' } },
+                                React.createElement("table", { className: "edit-sheets-table" },
+                                    React.createElement("thead", null, React.createElement("tr", null,
+                                        React.createElement("th", { style: { minWidth: '120px' } }, "ID листа*"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Плавка"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Марка стали"),
+                                        React.createElement("th", { style: { minWidth: '80px' } }, "Партия"),
+                                        React.createElement("th", { style: { minWidth: '80px' } }, "Длина, мм"),
+                                        React.createElement("th", { style: { minWidth: '80px' } }, "Ширина, мм"),
+                                        React.createElement("th", { style: { minWidth: '80px' } }, "Толщина, мм"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Номер первого листа"),
+                                        React.createElement("th", { style: { minWidth: '160px' } }, "Дата/время маркировки"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Номер части при порезке"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Код нарушения технологии"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Углеродный эквивалент"),
+                                        React.createElement("th", { style: { minWidth: '100px' } }, "Устойчивость на излом"),
+                                        React.createElement("th", { style: { minWidth: '60px' } }, "Действия")
+                                    )),
+                                    React.createElement("tbody", null, editSheets.map((sheet, idx) => React.createElement("tr", { key: idx },
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.sheet_id || '', placeholder: "ID листа", onChange: (e) => handleUpdateSheet(idx, 'sheet_id', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.heat || '', placeholder: "Плавка", onChange: (e) => handleUpdateSheet(idx, 'heat', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.grade || '', placeholder: "Марка стали", onChange: (e) => handleUpdateSheet(idx, 'grade', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.batch || '', placeholder: "Партия", onChange: (e) => handleUpdateSheet(idx, 'batch', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.plate_l || '', placeholder: "Длина", onChange: (e) => handleUpdateSheet(idx, 'plate_l', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.plate_w || '', placeholder: "Ширина", onChange: (e) => handleUpdateSheet(idx, 'plate_w', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.plate_t || '', placeholder: "Толщина", onChange: (e) => handleUpdateSheet(idx, 'plate_t', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.num_1 || '', placeholder: "Номер первого листа", onChange: (e) => handleUpdateSheet(idx, 'num_1', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.marking_time || '', placeholder: "ГГГГ-ММ-ДД ЧЧ:ММ:СС", onChange: (e) => handleUpdateSheet(idx, 'marking_time', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.cut_part_num || '', placeholder: "Номер части", onChange: (e) => handleUpdateSheet(idx, 'cut_part_num', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.tech_violation_code || '', placeholder: "Код нарушения", onChange: (e) => handleUpdateSheet(idx, 'tech_violation_code', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.carb_eqiv || '', placeholder: "Углеродный экв.", onChange: (e) => handleUpdateSheet(idx, 'carb_eqiv', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("input", { type: "text", value: sheet.crack_resist || '', placeholder: "Устойчивость", onChange: (e) => handleUpdateSheet(idx, 'crack_resist', e.target.value) })),
+                                        React.createElement("td", null, React.createElement("button", { className: "btn-danger btn-sm", onClick: () => handleRemoveSheet(idx) }, React.createElement("i", { className: "fas fa-trash" })))
+                                    )))
+                                )
+                            ),
+                            editSheets.length === 0 && React.createElement("div", { className: "empty-state", style: { padding: '1rem' } }, "Нет листов. Нажмите 'Добавить лист'"),
+                            React.createElement("div", { className: "form-group", style: { marginTop: '1rem' } },
+                                React.createElement("label", null, "Причина внесения изменений *"),
+                                React.createElement("textarea", { rows: "2", placeholder: "Обязательно для заполнения", value: editMessage, onChange: (e) => setEditMessage(e.target.value) })
+                            )
+                        ),
+                        React.createElement("div", { className: "modal-footer" },
+                            React.createElement("button", { className: "btn btn-outline", onClick: () => setShowEditModal(false) }, "Отмена"),
+                            React.createElement("button", { className: "btn btn-success", onClick: handleSaveChanges }, "Сохранить")
+                        )
+                    )
+                );
+            }
+
+            // Детальный вид карточки
+            if (selectedCard) {
+                return React.createElement("div", { className: "main-layout" },
+                    React.createElement("div", { className: "content-area" },
+                        React.createElement("button", { className: "btn btn-outline", onClick: backToList, style: { marginBottom: '1rem' } },
+                            React.createElement("i", { className: "fas fa-arrow-left" }), " К списку"
+                        ),
+                        React.createElement("div", { className: "fc-card" },
+                            React.createElement("div", { className: "fc-header" },
+                                React.createElement("h2", null, React.createElement("i", { className: "fas fa-id-card", style: { color: 'var(--primary-color)' } }), " Формировочная карточка №", selectedCard.card_id),
+                                React.createElement("div", { className: "fc-header-sub" }, "Детальная информация о формировочной карточке")
+                            ),
+                            React.createElement("div", { className: "sheets-section" },
+                                React.createElement("div", { className: "info-wrapper" },
+                                    React.createElement("div", { className: "main-info" },
+                                        React.createElement("div", { className: "info-section" },
+                                            React.createElement("h3", null, React.createElement("i", { className: "fas fa-info-circle" }), " Основная информация"),
+                                            React.createElement("div", { className: "fc-info-grid" },
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Номер заказа:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.order_id || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Направление:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.way || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "ГОСТ ТТ:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.fc_gost_tt || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "ГОСТ ХА:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.fc_gost_xa || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "ГОСТ Сорт:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.fc_gost_sort || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Дата отгрузки:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.shipment_date || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Номер вагона:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.wagon_num || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Сертификат:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.certificate || '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Дата создания:"), React.createElement("span", { className: "fc-info-value" }, selectedCard.created_date ? new Date(selectedCard.created_date).toLocaleString() : '—'))
+                                            )
+                                        )
+                                    ),
+                                    React.createElement("div", { className: "worker-info" },
+                                        React.createElement("div", { className: "info-section" },
+                                            React.createElement("h3", null, React.createElement("i", { className: "fas fa-user" }), " Сортировщик"),
+                                            React.createElement("div", { className: "fc-info-grid" },
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "ID:"), React.createElement("span", { className: "fc-info-value" }, workerInfo?.worker_id || WORKER_ID)),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "ФИО:"), React.createElement("span", { className: "fc-info-value" }, workerInfo ? `${workerInfo.lastname || ''} ${workerInfo.firstname || ''} ${workerInfo.secondname || ''}`.trim() : '—')),
+                                                React.createElement("div", { className: "fc-info-item" }, React.createElement("span", { className: "fc-info-label" }, "Смена/Бригада:"), React.createElement("span", { className: "fc-info-value" }, workerInfo ? `${workerInfo.shift || '—'}/${workerInfo.brigade || '—'}` : '—'))
+                                            )
+                                        )
+                                    )
+                                ),
+                                React.createElement("div", { style: { display: 'flex', gap: '0.8rem', marginBottom: '1rem', justifyContent: 'flex-end', flexWrap: 'wrap' } },
+                                    React.createElement("button", { className: "btn btn-success", onClick: openEditModal }, React.createElement("i", { className: "fas fa-edit" }), " Редактировать ФК"),
+                                    React.createElement("button", { className: "btn btn-outline", onClick: () => setShowLogs(!showLogs) },
+                                        React.createElement("i", { className: "fas fa-history" }), showLogs ? " Скрыть журнал" : " Журнал изменений"
+                                    )
+                                ),
+                                React.createElement("div", { className: "info-section" },
+                                    React.createElement("h3", null, React.createElement("i", { className: "fas fa-layer-group" }), " Листы в формировочной карточке (", sheets.length, " шт.)"),
+                                    React.createElement("div", { className: "sheets-table-container" },
+                                        React.createElement("table", { className: "sheets-table" },
+                                            React.createElement("thead", null, React.createElement("tr", null,
+                                                React.createElement("th", null, "ID листа"), React.createElement("th", null, "Плавка"), React.createElement("th", null, "Марка стали"),
+                                                React.createElement("th", null, "Партия"), React.createElement("th", null, "Длина, мм"), React.createElement("th", null, "Ширина, мм"),
+                                                React.createElement("th", null, "Толщина, мм"), React.createElement("th", null, "Номер первого листа"), React.createElement("th", null, "Действия")
+                                            )),
+                                            React.createElement("tbody", null, sheets.map(sheet => React.createElement("tr", { key: sheet.sheet_id },
+                                                React.createElement("td", null, React.createElement("a", { className: "sheet-link", onClick: () => setViewSheetDetail(sheet) }, sheet.sheet_id)),
+                                                React.createElement("td", null, sheet.heat || '—'),
+                                                React.createElement("td", null, sheet.grade || '—'),
+                                                React.createElement("td", null, sheet.batch || '—'),
+                                                React.createElement("td", null, sheet.plate_l || '—'),
+                                                React.createElement("td", null, sheet.plate_w || '—'),
+                                                React.createElement("td", null, sheet.plate_t || '—'),
+                                                React.createElement("td", null, sheet.num_1 || '—'),
+                                                React.createElement("td", null,
+                                                    React.createElement("div", { className: "sheet-actions" },
+                                                        React.createElement("button", { className: "btn-danger btn-sm", onClick: (e) => { e.stopPropagation(); handleDeleteSheet(sheet); } },
+                                                            React.createElement("i", { className: "fas fa-trash" }), " Удалить"
+                                                        ),
+                                                        otherCards.length > 0 && React.createElement("select", {
+                                                            className: "btn-outline",
+                                                            style: { padding: '0.2rem 0.4rem', fontSize: '0.8rem' },
+                                                            onChange: (e) => {
+                                                                e.stopPropagation();
+                                                                if (e.target.value) handleMoveSheet(sheet, parseInt(e.target.value));
+                                                                e.target.value = "";
+                                                            },
+                                                            value: ""
+                                                        },
+                                                            React.createElement("option", { value: "" }, "📦 Переместить"),
+                                                            otherCards.map(c => React.createElement("option", { key: c.card_id, value: c.card_id }, `ФК #${c.card_id}`))
+                                                        )
+                                                    )
+                                                )
+                                            )))
+                                        )
+                                    )
+                                ),
+                                otherCards.length > 0 && React.createElement("div", { className: "other-fc-container" },
+                                    React.createElement("h4", null, React.createElement("i", { className: "fas fa-link" }), " Другие формировочные карточки для заказа №", selectedCard.order_id),
+                                    React.createElement("div", { className: "other-fc-buttons" },
+                                        otherCards.map(c => React.createElement("button", { key: c.card_id, className: "other-fc-btn", onClick: () => selectCard(c) },
+                                            React.createElement("i", { className: "fas fa-folder-open" }), " ФК #" + c.card_id
+                                        ))
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    showLogs && React.createElement("div", { className: "sidebar" },
+                        React.createElement("div", { className: "logs-sidebar" },
+                            React.createElement("h3", null, React.createElement("i", { className: "fas fa-history" }), " Журнал изменений ФК №", selectedCard.card_id),
+                            React.createElement("div", { className: "logs-list" },
+                                logs.length > 0 ? logs.map(log => React.createElement("div", { key: log.log_id, className: "log-item" },
+                                    React.createElement("div", { className: "log-time" }, new Date(log.log_date).toLocaleString()),
+                                    React.createElement("div", { className: "log-user" }, React.createElement("i", { className: "fas fa-user" }), " ", log.worker_name),
+                                    React.createElement("div", { className: "log-changes" },
+                                        log.action === 'edit' ? (
+                                            React.createElement("div", null,
+                                                React.createElement("div", { style: { fontWeight: 'bold', marginBottom: '0.3rem' } }, "📝 Изменения:"),
+                                                log.changes.changes.map((ch, idx) => React.createElement("div", { key: idx }, `• ${ch.field}: ${ch.old} → ${ch.new}`)),
+                                                React.createElement("div", { style: { marginTop: '0.3rem', fontStyle: 'italic', color: 'var(--text-muted)' } }, `📌 Причина: ${log.changes.message}`)
+                                            )
+                                        ) : log.action === 'delete_sheet' ? (
+                                            React.createElement("div", null,
+                                                React.createElement("div", { style: { fontWeight: 'bold', marginBottom: '0.3rem', color: 'var(--danger-color)' } }, "🗑️ УДАЛЕНИЕ ЛИСТА"),
+                                                React.createElement("div", null, `• Лист ${log.changes.sheet_id} удален из карты`),
+                                                React.createElement("div", { style: { marginTop: '0.3rem', fontStyle: 'italic', color: 'var(--text-muted)' } }, `📌 Причина: ${log.changes.message}`)
+                                            )
+                                        ) : (
+                                            React.createElement("div", null,
+                                                React.createElement("div", { style: { fontWeight: 'bold', marginBottom: '0.3rem' } }, "🔄 Перемещение листа:"),
+                                                React.createElement("div", null, `• Лист ${log.changes.sheet_id} перемещен из ФК №${log.changes.from_card} в ФК №${log.changes.to_card}`),
+                                                React.createElement("div", { style: { fontStyle: 'italic' } }, `Причина: ${log.changes.message}`)
+                                            )
+                                        )
+                                    )
+                                )) : React.createElement("div", { style: { textAlign: 'center', padding: '1rem' } }, "Изменений не было")
+                            )
+                        )
+                    )
+                );
+            }
+
+            // Главная страница (список карточек)
+            return React.createElement("div", { className: "app" },
+                React.createElement("div", { className: "header" },
+                    React.createElement("div", { className: "header-content" },
+                        React.createElement("h1", null, React.createElement("i", { className: "fas fa-folder-closed" }), " Закрытые формировочные карточки"),
+                        React.createElement("button", { className: "theme-toggle", onClick: toggleTheme },
+                            React.createElement("i", { className: "fas " + (theme === 'dark' ? 'fa-sun' : 'fa-moon') }),
+                            theme === 'dark' ? " Светлая тема" : " Темная тема"
+                        )
+                    )
+                ),
+                React.createElement("div", { className: "main-layout" },
+                    React.createElement("div", { className: "content-area" },
+                        React.createElement("div", { className: "filters-card" },
+                            React.createElement("h3", null, React.createElement("i", { className: "fas fa-filter" }), " Фильтры"),
+                            React.createElement("div", { className: "filters-grid" },
+                                React.createElement("div", { className: "filter-group" }, React.createElement("label", null, "ID ФК"), React.createElement("input", { type: "text", placeholder: "Поиск по ID...", value: filters.card_id, onChange: (e) => handleFilterChange('card_id', e.target.value) })),
+                                React.createElement("div", { className: "filter-group" }, React.createElement("label", null, "Номер заказа"), React.createElement("input", { type: "text", placeholder: "Поиск по заказу...", value: filters.order_id, onChange: (e) => handleFilterChange('order_id', e.target.value) })),
+                                React.createElement("div", { className: "filter-group" }, React.createElement("label", null, "Марка стали"), React.createElement("input", { type: "text", placeholder: "Поиск по марке...", value: filters.grade, onChange: (e) => handleFilterChange('grade', e.target.value) })),
+                                React.createElement("div", { className: "filter-group" }, React.createElement("label", null, "Позиция"), React.createElement("input", { type: "text", placeholder: "Поиск по позиции...", value: filters.position, onChange: (e) => handleFilterChange('position', e.target.value) }))
+                            ),
+                            React.createElement("div", { className: "sort-bar", style: { marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' } },
+                                React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
+                                    React.createElement("label", null, "Сортировка:"),
+                                    React.createElement("select", { value: `${sortBy.field}|${sortBy.direction}`, onChange: handleSortChange },
+                                        React.createElement("option", { value: "card_id|ASC" }, "ID ФК (по возрастанию)"),
+                                        React.createElement("option", { value: "card_id|DESC" }, "ID ФК (по убыванию)"),
+                                        React.createElement("option", { value: "order_id|ASC" }, "Номер заказа (по возрастанию)"),
+                                        React.createElement("option", { value: "order_id|DESC" }, "Номер заказа (по убыванию)"),
+                                        React.createElement("option", { value: "grade|ASC" }, "Марка стали (А-Я)"),
+                                        React.createElement("option", { value: "grade|DESC" }, "Марка стали (Я-А)")
+                                    )
+                                ),
+                                React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } },
+                                    React.createElement("button", { className: "btn btn-primary", onClick: applyFilters },
+                                        React.createElement("i", { className: "fas fa-search" }), " Поиск"
+                                    ),
+                                    React.createElement("button", { className: "btn btn-outline", onClick: resetFilters },
+                                        React.createElement("i", { className: "fas fa-times" }), " Сбросить"
+                                    )
+                                )
+                            )
+                        ),
+                        React.createElement("div", { className: "cards-table" },
+                            React.createElement("table", null,
+                                React.createElement("thead", null, React.createElement("tr", null,
+                                    React.createElement("th", null, "ID ФК"), React.createElement("th", null, "Номер заказа"), React.createElement("th", null, "Направление"),
+                                    React.createElement("th", null, "Марка стали"), React.createElement("th", null, "Позиция"), React.createElement("th", null, "Кол-во листов")
+                                )),
+                                React.createElement("tbody", null,
+                                    cards.map(card => React.createElement("tr", { key: card.card_id, onClick: () => selectCard(card) },
+                                        React.createElement("td", null, React.createElement("strong", null, "#" + card.card_id)),
+                                        React.createElement("td", null, card.order_id),
+                                        React.createElement("td", null, card.way || "-"),
+                                        React.createElement("td", null, card.grade || "-"),
+                                        React.createElement("td", null, card.position || "-"),
+                                        React.createElement("td", null, React.createElement("span", { className: "badge badge-success" }, sheetsCount[card.card_id] || 0))
+                                    )),
+                                    cards.length === 0 && React.createElement("tr", null,
+                                        React.createElement("td", { colSpan: "6", className: "empty-state" },
+                                            React.createElement("i", { className: "fas fa-inbox" }),
+                                            React.createElement("p", null, "Карточки не найдены")
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+    </script>
+</body>
+</html>

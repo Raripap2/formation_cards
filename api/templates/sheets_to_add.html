@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Привязка листов к ФК</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #111827;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            display: flex;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+
+        /* ЛЕВАЯ ПАНЕЛЬ: Формировочные карты (Зоны бросания) */
+        .fk-panel {
+            width: 380px;
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 20px;
+            height: calc(100vh - 40px); /* На весь экран */
+        }
+
+        .fk-panel-header {
+            background-color: #22252a;
+            color: #ffffff;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        .fk-cards-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f9fafb;
+        }
+
+        .fk-card {
+            background-color: #ffffff;
+            border: 2px dashed #d1d5db; /* Пунктир показывает, что сюда можно кидать */
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+        }
+
+        /* Эффект когда перетаскиваем над карточкой ФК */
+        .fk-card.drag-over {
+            border-color: #f25c22;
+            background-color: #fff6f3;
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(242, 92, 34, 0.15);
+        }
+
+        .fk-card-title {
+            font-weight: 800;
+            font-size: 15px;
+            color: #22252a;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+        }
+
+        .fk-card-info { font-size: 13px; color: #4b5563; line-height: 1.5; }
+        .fk-card-info span { font-weight: 700; color: #111827;}
+
+        /* ПРАВАЯ ПАНЕЛЬ: Листы */
+        .sheets-panel {
+            flex: 1;
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 { margin-top: 0; font-size: 20px; border-bottom: 2px solid #22252a; padding-bottom: 10px; text-transform: uppercase;}
+
+        .filter-panel {
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+
+        .filter-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; color: #4b5563;}
+        .filter-group input, .filter-group select {
+            width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;
+        }
+        .btn-primary { background-color: #22252a; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-primary:hover { background-color: #f25c22; }
+
+        /* Таблица листов с поддержкой перетаскивания */
+        .table-container { flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+        .data-table th { background-color: #22252a; color: white; position: sticky; top: 0; z-index: 10; font-size: 12px; text-transform: uppercase; }
+
+        .data-table tbody tr {
+            cursor: grab; /* Иконка руки */
+            background-color: #ffffff;
+            transition: background-color 0.1s;
+        }
+        .data-table tbody tr:hover { background-color: #f3f4f6; }
+        .data-table tbody tr:active { cursor: grabbing; }
+
+        /* Выделенный ряд (Ctrl + Click) */
+        .data-table tbody tr.selected {
+            background-color: #fff6f3; /* Легкий оранжевый фон */
+            box-shadow: inset 3px 0 0 #f25c22;
+        }
+
+        .drag-handle { color: #9ca3af; cursor: grab; padding-right: 10px; font-size: 16px;}
+
+        /* Уведомления и инфо */
+        .selection-info {
+            background-color: #22252a;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selection-info span { color: #f25c22; font-size: 16px;}
+
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background-color: #10b981; color: white;
+            padding: 15px 25px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 9999; font-weight: bold;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background-color: #ef4444; }
+
+        .loading { text-align: center; padding: 20px; color: #6b7280; font-weight: bold;}
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <div class="main-wrapper">
+        <div class="fk-panel">
+            <div class="fk-panel-header">Приемники: Открытые ФК</div>
+            <div class="fk-cards-container" id="fkContainer">
+                <div class="loading">Загрузка карт...</div>
+            </div>
+        </div>
+
+        <div class="sheets-panel">
+            <h1>Доступные листы на складе</h1>
+
+            <div class="selection-info" id="selectionInfo" style="display: none;">
+                <div>Выбрано листов: <span id="selectedCount">0</span></div>
+                <div style="font-size: 12px; font-weight: 400;">(Удерживайте CTRL для выбора нескольких. Потяните за любой выделенный)</div>
+            </div>
+
+            <div class="filter-panel">
+                <div class="filter-group"><label>ID листа</label><input type="text" id="filterSheetId"></div>
+                <div class="filter-group"><label>Марка</label><input type="text" id="filterGrade"></div>
+                <div class="filter-group"><label>Плавка</label><input type="text" id="filterHeat"></div>
+                <div class="filter-group"><label>Сортировка</label>
+                    <select id="sortField">
+                        <option value="sheet_id">ID листа</option>
+                        <option value="grade">Марка</option>
+                        <option value="plate_t">Толщина</option>
+                    </select>
+                </div>
+                <div style="grid-column: 1 / -1;"><button class="btn-primary" id="applyFilters">Применить фильтры</button></div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th>ID Листа</th>
+                            <th>Марка</th>
+                            <th>Плавка</th>
+                            <th>Размеры (Т×Ш×Д)</th>
+                            <th>Order</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sheetsContainer">
+                        <tr><td colspan="6" class="loading">Загрузка данных...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="loadingMoreIndicator" class="loading" style="display:none; padding: 10px;">Загрузка еще...</div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Сообщение</div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 50; // Загружаем чуть больше для удобства перетаскивания
+        let isLoading = false;
+        let hasMore = true;
+        let selectedSheets = new Set();
+        let isCtrlPressed = false;
+
+        // Загрузка шапки
+        fetch('/static/components/header.html')
+            .then(res => res.text())
+            .then(html => document.getElementById('header-placeholder').innerHTML = html);
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${isError ? 'error' : ''}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function updateSelectionInfo() {
+            const info = document.getElementById('selectionInfo');
+            document.getElementById('selectedCount').textContent = selectedSheets.size;
+            info.style.display = selectedSheets.size > 0 ? 'flex' : 'none';
+        }
+
+        // ==========================================
+        // 1. ЛОГИКА ФОРМИРОВОЧНЫХ КАРТ (DROP ZONES)
+        // ==========================================
+        async function fetchAndRenderFKs() {
+            try {
+                const res = await fetch('/api/formation_cards/get', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fields: ['card_id', 'order_id', 'grade', 'wagon_num'], filters: { closed: false }, page_number: 1, page_size: 100, order_by: 'card_id', order_direction: 'asc' })
+                });
+                const cards = await res.json();
+                const container = document.getElementById('fkContainer');
+                container.innerHTML = '';
+
+                if(cards.length === 0) {
+                    container.innerHTML = '<div style="color:#6b7280; text-align:center;">Нет открытых ФК</div>';
+                    return;
+                }
+
+                cards.forEach(card => {
+                    const el = document.createElement('div');
+                    el.className = 'fk-card';
+                    el.innerHTML = `
+                        <div class="fk-card-title">ФК № ${card.card_id}</div>
+                        <div class="fk-card-info">Заказ: <span>${card.order_id || '—'}</span></div>
+                        <div class="fk-card-info">Марка: <span>${card.grade || '—'}</span></div>
+                        <div class="fk-card-info">Вагон: <span>${card.wagon_num || '—'}</span></div>
+                        <div style="font-size:11px; color:#9ca3af; margin-top:8px; text-align:center;">Перетащите листы сюда</div>
+                    `;
+
+                    // Drag & Drop события для Зоны Бросания
+                    el.addEventListener('dragover', e => {
+                        e.preventDefault(); // Разрешаем сброс
+                        e.dataTransfer.dropEffect = 'move';
+                        el.classList.add('drag-over');
+                    });
+
+                    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+
+                    el.addEventListener('drop', async e => {
+                        e.preventDefault();
+                        el.classList.remove('drag-over');
+
+                        const rawData = e.dataTransfer.getData('application/json');
+                        if (!rawData) return;
+
+                        const sheetIds = JSON.parse(rawData);
+                        await attachSheetsToFK(card.card_id, sheetIds);
+                    });
+
+                    container.appendChild(el);
+                });
+            } catch (e) { showToast('Ошибка загрузки ФК', true); }
+        }
+
+        async function attachSheetsToFK(fkId, sheetIdsArray) {
+            try {
+                const response = await fetch(`/api/formation_cards/add_sheet/${fkId}?worker_id=1`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sheet_ids: sheetIdsArray })
+                });
+                if (!response.ok) throw new Error('Сбой привязки');
+
+                showToast(`Успешно привязано ${sheetIdsArray.length} шт. к ФК ${fkId}`);
+
+                // Очищаем выделение и обновляем список листов (чтобы убрать привязанные)
+                selectedSheets.clear();
+                updateSelectionInfo();
+                loadSheets(true);
+
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        }
+
+
+        // ==========================================
+        // 2. ЛОГИКА ЛИСТОВ (DRAGGABLE ITEMS)
+        // ==========================================
+        async function fetchSheets() {
+            isLoading = true;
+            document.getElementById('loadingMoreIndicator').style.display = 'block';
+            const body = {
+                fields: ['sheet_id', 'grade', 'heat', 'plate_t', 'plate_w', 'plate_l', 'sb_order'],
+                page_number: currentPage, page_size: pageSize,
+                order_by: document.getElementById('sortField').value, order_direction: 'desc'
+            };
+
+            const filters = {};
+            ['sheetId', 'grade', 'heat'].forEach(id => {
+                const val = document.getElementById(`filter${id.charAt(0).toUpperCase() + id.slice(1)}`).value;
+                if(val) filters[id === 'sheetId' ? 'sheet_id' : id] = val;
+            });
+            if(Object.keys(filters).length > 0) body.filters = filters;
+
+            try {
+                const res = await fetch('/api/sheets/get_with_filtres', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                hasMore = data.length === pageSize;
+                return data;
+            } catch (e) { return []; }
+            finally { isLoading = false; document.getElementById('loadingMoreIndicator').style.display = 'none'; }
+        }
+
+        async function loadSheets(reset = false) {
+            const tbody = document.getElementById('sheetsContainer');
+            if(reset) { tbody.innerHTML = ''; currentPage = 1; }
+
+            const sheets = await fetchSheets();
+            if(sheets.length === 0 && reset) { tbody.innerHTML = '<tr><td colspan="6" class="loading">Ничего не найдено</td></tr>'; return; }
+
+            // Удаляем старый лоадер если был
+            const loader = tbody.querySelector('.loading');
+            if(loader) loader.closest('tr').remove();
+
+            sheets.forEach(sheet => {
+                const tr = document.createElement('tr');
+                tr.draggable = true; // ДЕЛАЕМ СТРОКУ ПЕРЕТАСКИВАЕМОЙ
+
+                tr.innerHTML = `
+                    <td class="drag-handle">⋮⋮</td>
+                    <td><strong>${sheet.sheet_id}</strong></td>
+                    <td>${sheet.grade || '—'}</td>
+                    <td>${sheet.heat || '—'}</td>
+                    <td>${sheet.plate_t} × ${sheet.plate_w} × ${sheet.plate_l}</td>
+                    <td>${sheet.sb_order || '—'}</td>
+                `;
+
+                // Логика выделения строк
+                tr.addEventListener('click', () => {
+                    const id = sheet.sheet_id;
+                    if(isCtrlPressed) {
+                        if(selectedSheets.has(id)) { selectedSheets.delete(id); tr.classList.remove('selected'); }
+                        else { selectedSheets.add(id); tr.classList.add('selected'); }
+                    } else {
+                        document.querySelectorAll('.data-table tbody tr').forEach(r => r.classList.remove('selected'));
+                        selectedSheets.clear();
+                        selectedSheets.add(id);
+                        tr.classList.add('selected');
+                    }
+                    updateSelectionInfo();
+                });
+
+                // Логика начала перетаскивания (DragStart)
+                tr.addEventListener('dragstart', (e) => {
+                    let idsToDrag = [];
+                    // Если тащим выделенный элемент, забираем все выделенные
+                    if (selectedSheets.has(sheet.sheet_id)) {
+                        idsToDrag = Array.from(selectedSheets);
+                    } else {
+                        // Если тащим невыделенный, тащим только его
+                        idsToDrag = [sheet.sheet_id];
+                        // Визуально очищаем другие выделения
+                        document.querySelectorAll('.data-table tbody tr').forEach(r => r.classList.remove('selected'));
+                        selectedSheets.clear();
+                        selectedSheets.add(sheet.sheet_id);
+                        tr.classList.add('selected');
+                        updateSelectionInfo();
+                    }
+
+                    e.dataTransfer.setData('application/json', JSON.stringify(idsToDrag));
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                tbody.appendChild(tr);
+            });
+            currentPage++;
+        }
+
+        // ==========================================
+        // 3. ИНИЦИАЛИЗАЦИЯ И СЛУШАТЕЛИ
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndRenderFKs();
+            loadSheets(true);
+
+            // Обработка клавиш Ctrl для выделения
+            document.addEventListener('keydown', e => { if(e.key === 'Control') isCtrlPressed = true; });
+            document.addEventListener('keyup', e => { if(e.key === 'Control') isCtrlPressed = false; });
+
+            // Сброс выделения по ESC
+            document.addEventListener('keydown', e => {
+                if(e.key === 'Escape') {
+                    selectedSheets.clear();
+                    document.querySelectorAll('.data-table tbody tr').forEach(r => r.classList.remove('selected'));
+                    updateSelectionInfo();
+                }
+            });
+
+            // Бесконечный скролл для таблицы листов
+            const tableContainer = document.querySelector('.table-container');
+            tableContainer.addEventListener('scroll', () => {
+                if (tableContainer.scrollTop + tableContainer.clientHeight >= tableContainer.scrollHeight - 50 && !isLoading && hasMore) {
+                    loadSheets(false);
+                }
+            });
+
+            document.getElementById('applyFilters').addEventListener('click', () => loadSheets(true));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о карте формирования</title>
+    <style>
+        /* Индустриальные стили ЛПЦ-1 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; background-color: #f3f4f6; color: #111827; font-size: 14px;
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+
+        .container {
+            padding: 24px; max-width: 1200px; width: 100%; margin: 0 auto; flex: 1;
+            box-sizing: border-box; background-color: #ffffff; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
+        }
+
+        .back-button {
+            display: inline-flex; align-items: center; padding: 8px 16px; margin-bottom: 20px;
+            background-color: #ffffff; color: #22252a; text-decoration: none; border-radius: 4px;
+            border: 1px solid #d1d5db; font-weight: 600; transition: all 0.1s ease;
+        }
+        .back-button:hover { background-color: #f3f4f6; border-color: #9ca3af; }
+
+        .card-container { background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 4px; padding: 24px; position: relative; }
+
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #22252a; }
+        .card-title { font-size: 22px; font-weight: 700; color: #111827; text-transform: uppercase; }
+
+        .card-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 30px; margin-bottom: 30px; }
+        .detail-group { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 20px; }
+        .detail-group-title { font-weight: 700; margin-bottom: 15px; color: #22252a; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #d1d5db; padding-bottom: 6px; }
+
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-weight: 600; width: 160px; color: #4b5563; }
+        .detail-value { flex: 1; color: #111827; font-weight: 500; }
+
+        .status-closed { color: #c5221f; font-weight: 700; text-transform: uppercase; }
+        .status-open { color: #137333; font-weight: 700; text-transform: uppercase; }
+
+        .action-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+        .action-button { padding: 10px 20px; border-radius: 4px; border: 1px solid #d1d5db; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; transition: all 0.15s ease; }
+
+        .edit-btn { background-color: #22252a; color: white; border-color: #22252a; }
+        .edit-btn:hover { background-color: #111316; }
+        .view-sheets-btn { background-color: #ffffff; color: #22252a; }
+        .view-sheets-btn:hover { background-color: #f3f4f6; }
+        .close-sheets-btn { background-color: #ffffff; color: #c5221f; border-color: #fad2cf; }
+        .close-sheets-btn:hover { background-color: #fce8e6; }
+        .delete-btn { background-color: #ffffff; color: #6b7280; border-color: #d1d5db; margin-left: auto; }
+        .delete-btn:hover { background-color: #fce8e6; color: #c5221f; border-color: #fad2cf; }
+
+        /* Таблица листов ФК */
+        .sheets-container { margin-top: 30px; padding: 20px; background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 4px; }
+        .sheets-title { font-weight: 700; color: #111827; font-size: 16px; text-transform: uppercase; margin-bottom: 15px; }
+        .sheets-table { width: 100%; border-collapse: collapse; }
+        .sheets-table th, .sheets-table td { border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; }
+        .sheets-table th { background-color: #22252a; color: #ffffff; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        .sheets-table tr:nth-child(even) { background-color: #f9fafb; }
+
+        .delete-sheet-btn { background-color: #ffffff; color: #c5221f; border: 1px solid #fad2cf; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .delete-sheet-btn:hover { background-color: #fce8e6; }
+
+        /* Модальное окно */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background-color: #ffffff; padding: 24px; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); width: 650px; max-width: 95%; max-height: 90vh; overflow-y: auto; border-top: 4px solid #f25c22; }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb; }
+        .modal-title { font-size: 18px; font-weight: 700; color: #111827; text-transform: uppercase; }
+        .close-modal { background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af; }
+        .close-modal:hover { color: #111827; }
+
+        .modal-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #f25c22; box-shadow: 0 0 0 2px rgba(242, 92, 34, 0.1); }
+        .form-group.full-width { grid-column: 1 / -1; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; }
+        .save-btn { background-color: #22252a; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
+        .save-btn:hover { background-color: #111316; }
+        .cancel-btn { background-color: #ffffff; color: #374151; border: 1px solid #d1d5db; padding: 10px 20px; border-radius: 4px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
+        .cancel-btn:hover { background-color: #f3f4f6; }
+
+        .loading, .error { text-align: center; padding: 40px; color: #4b5563; font-weight: 600; }
+        .error { color: #c5221f; }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <a href="/html/allfk/" class="back-button">← К списку карт</a>
+
+        <div class="card-container" id="cardContainer">
+            <div class="loading">Загрузка данных карты с сервера...</div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const cardId = parseInt(urlParams.get('id'));
+
+        async function loadComponents() {
+            try {
+                const headerRes = await fetch('/static/components/header.html');
+                if (headerRes.ok) document.getElementById('header-placeholder').innerHTML = await headerRes.text();
+
+                const footerRes = await fetch('/static/components/footer.html');
+                if (footerRes.ok) document.getElementById('footer-placeholder').innerHTML = await footerRes.text();
+            } catch (error) { console.error('Ошибка загрузки компонентов:', error); }
+        }
+
+        async function fetchCardData() {
+            if (!cardId) throw new Error('ID карты не указан');
+            try {
+                const response = await fetch(`/api/formation_cards/get/${cardId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                return await response.json();
+            } catch (error) { throw error; }
+        }
+
+        async function fetchSheetsData(cardId) {
+            try {
+                const response = await fetch(`/api/formation_cards/get/${cardId}/sheets`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                return await response.json();
+            } catch (error) { throw error; }
+        }
+
+        async function deleteSheetFromFk(cardId, sheetId) {
+            if (!confirm(`Вы уверены, что хотите отвязать лист ${sheetId} от этой карты формирования?`)) return;
+            try {
+                const response = await fetch(`/api/formation_cards/delete_sheet?card_id=${cardId}&sheet_id=${sheetId}&worker_id=1`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert('Лист успешно удален из карты');
+                    displaySheetsTable(cardId);
+                } else throw new Error('Ошибка при удалении листа');
+            } catch (error) { alert(error.message); }
+        }
+
+        async function displaySheetsTable(cardId) {
+            let sheetsContainer = document.getElementById('sheetsContainer');
+            if (!sheetsContainer) {
+                sheetsContainer = document.createElement('div');
+                sheetsContainer.className = 'sheets-container';
+                sheetsContainer.id = 'sheetsContainer';
+                document.querySelector('.card-container').appendChild(sheetsContainer);
+            }
+
+            // Добавляем стили для карточек (аналог из sheets_to_add)
+            sheetsContainer.innerHTML = `
+                <style>
+                    .sheets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; }
+                    .sheet-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                    .sheet-card h4 { margin: 0 0 10px 0; color: #333; }
+                    .sheet-card p { margin: 5px 0; font-size: 13px; color: #666; }
+                    .btn-remove { margin-top: 10px; background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+                </style>
+                <div class="sheets-title">Листы в карте формирования</div>
+                <div class="sheets-grid" id="sheetsGrid">Загрузка данных...</div>
+            `;
+
+            try {
+                const sheetIds = await fetchSheetsData(cardId); // Получаем массив ID листов
+                const grid = document.getElementById('sheetsGrid');
+
+                if (sheetIds && sheetIds.length > 0) {
+                    grid.innerHTML = '';
+                    // Предположим, что API позволяет получить детальные данные по ID
+                    // Если нужно только отобразить, перебираем массив
+                    console.log(sheetIds);
+                    sheetIds.forEach(id => {
+                        const card = document.createElement('div');
+                        card.className = 'sheet-card';
+                        card.innerHTML = `
+                            <h4>Лист № ${id.sheet_id}</h4>
+                            <p>Статус: Привязан</p>
+                            <p>Плавка: ${id.heat} Размеры ${id.plate_l}X${id.plate_t}X${id.plate_w}</p>
+                            <button class="btn-remove" onclick="deleteSheetFromFk(${cardId}, '${id}')">Удалить из карты</button>
+                        `;
+                        grid.appendChild(card);
+                    });
+                } else {
+                    grid.innerHTML = '<div>Листы не найдены.</div>';
+                }
+            } catch (error) {
+                document.getElementById('sheetsGrid').innerHTML = `<div class="error">Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        async function closeFK(cardId) {
+            if (!confirm(`Вы уверены, что хотите закрыть ФК ${cardId}? После закрытия редактирование станет невозможным.`)) return;
+            try {
+                const response = await fetch(`/api/formation_cards/close/${cardId}`, { method: 'PUT' });
+                if (response.ok) {
+                    alert('Карта формирования закрыта');
+                    displayCardData();
+                } else throw new Error('Ошибка при закрытии ФК');
+            } catch (error) { alert(error.message); }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'не указана';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function openEditModal(cardData, cardId) {
+            if (cardData.closed) {
+                alert('Редактирование закрытой карты формирования невозможно.');
+                return;
+            }
+
+            const modalHTML = `
+                <div class="modal-overlay active" id="editModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">Корректировка ФК #${cardId}</div>
+                            <button class="close-modal" onclick="closeModal()">&times;</button>
+                        </div>
+                        <form id="editForm">
+                            <div class="modal-form">
+                                <div class="form-group"><label>ID заказа</label><input type="text" id="order_id" value="${cardData.order_id || ''}"></div>
+                                <div class="form-group"><label>Направление (Way)</label><input type="text" id="way" value="${cardData.way || ''}"></div>
+                                <div class="form-group"><label>Дата отгрузки</label><input type="date" id="shipment_date" value="${cardData.shipment_date ? cardData.shipment_date.split('T')[0] : ''}"></div>
+                                <div class="form-group"><label>Марка стали</label><input type="text" id="grade" value="${cardData.grade || ''}"></div>
+                                <div class="form-group"><label>ГОСТ ТТ</label><input type="text" id="fc_gost_tt" value="${cardData.fc_gost_tt || ''}"></div>
+                                <div class="form-group"><label>ГОСТ ХА</label><input type="text" id="fc_gost_xa" value="${cardData.fc_gost_xa || ''}"></div>
+                                <div class="form-group"><label>ГОСТ сорта</label><input type="text" id="fc_gost_sort" value="${cardData.fc_gost_sort || ''}"></div>
+                                <div class="form-group"><label>Сертификат</label><input type="text" id="certificate" value="${cardData.certificate || ''}"></div>
+                                <div class="form-group"><label>Номер вагона</label><input type="text" id="wagon_num" value="${cardData.wagon_num || ''}"></div>
+                                <div class="form-group"><label>Партия</label><input type="text" id="batch" value="${cardData.batch || ''}"></div>
+                                <div class="form-group"><label>Группа</label><input type="text" id="group_num" value="${cardData.group_num || ''}"></div>
+                                <div class="form-group"><label>Стеллаж / Позиция</label><input type="text" id="position" value="${cardData.position || ''}" maxlength="5" placeholder="XX-XX"></div>
+                                <div class="form-group full-width"><label>Причина внесения изменений *</label><textarea id="message" rows="3" placeholder="Обязательно для заполнения" required></textarea></div>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="cancel-btn" onclick="closeModal()">Отмена</button>
+                                <button type="button" class="save-btn" onclick="saveChanges(${cardId})">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+            // Маска ввода
+            document.getElementById('position').addEventListener('input', function() {
+                let value = this.value.replace(/\D/g, '');
+                if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2, 4);
+                this.value = value;
+            });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) modal.remove();
+        }
+
+        async function saveChanges(cardId) {
+            const message = document.getElementById('message').value.trim();
+            if (!message) { alert('Пожалуйста, укажите причину изменения'); return; }
+
+            const posValue = document.getElementById('position').value.trim();
+            if (posValue && !/^\d+-\d+$/.test(posValue)) { alert('Формат позиции должен быть ХХ-ХХ (например: 12-34)'); return; }
+
+            const params = {};
+            const fields = ['order_id', 'way', 'shipment_date', 'grade', 'fc_gost_tt', 'fc_gost_xa', 'fc_gost_sort', 'certificate', 'wagon_num', 'batch', 'group_num', 'position'];
+            fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element && element.value !== element.defaultValue) params[field] = element.value || null;
+            });
+
+            if (Object.keys(params).length === 0) { alert('Нет изменений для сохранения'); return; }
+
+            try {
+                const response = await fetch(`/api/formation_cards/edit/${cardId}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ worker_id: 1, message: message, params: params })
+                });
+
+                if (response.ok) {
+                    alert('Изменения успешно сохранены');
+                    closeModal();
+                    displayCardData();
+                } else throw new Error('Ошибка при сохранении изменений');
+            } catch (error) { alert(error.message); }
+        }
+
+        function handleButtonActions(cardId, cardData) {
+            document.querySelector('.edit-btn').addEventListener('click', () => openEditModal(cardData, cardId));
+            document.querySelector('.close-sheets-btn').addEventListener('click', () => closeFK(cardId));
+            document.querySelector('.view-sheets-btn').addEventListener('click', () => displaySheetsTable(cardId));
+
+            document.querySelector('.delete-btn').addEventListener('click', async () => {
+                if (confirm('ВНИМАНИЕ! Вы уверены, что хотите безвозвратно удалить эту карту?')) {
+                    try {
+                        const response = await fetch(`/api/formation_cards/delete/${cardId}`, { method: 'DELETE' });
+                        if (response.ok) window.location.href = '/html/allfk/';
+                        else throw new Error('Ошибка при удалении карты');
+                    } catch (error) { alert(error.message); }
+                }
+            });
+        }
+
+        async function displayCardData() {
+            const container = document.getElementById('cardContainer');
+            try {
+                const cardData = await fetchCardData();
+                const statusText = cardData.closed ? 'Закрыта' : 'Открыта';
+                const statusClass = cardData.closed ? 'status-closed' : 'status-open';
+                console.log(cardData);
+                container.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">Карта формирования № ${cardData.card_id || '—'}</div>
+                        <div>Статус: <span class="${statusClass}">${statusText}</span></div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="detail-group">
+                            <div class="detail-group-title">Параметры заказа</div>
+                            <div class="detail-row"><div class="detail-label">ID заказа:</div><div class="detail-value"><strong>${cardData.order_id || '—'}</strong></div></div>
+                            <div class="detail-row"><div class="detail-label">Направление:</div><div class="detail-value">${cardData.way || '—'}</div></div>
+                            <div class="detail-row"><div class="detail-label">Позиция:</div><div class="detail-value"><u>${cardData.position || '—'}</u></div></div>
+                            <div class="detail-row"><div class="detail-label">Создана:</div><div class="detail-value">${formatDate(cardData.created_date)}</div></div>
+                            <div class="detail-row"><div class="detail-label">Отгрузка:</div><div class="detail-value">${cardData.shipment_date || '—'}</div></div>
+                        </div>
+
+                        <div class="detail-group">
+                            <div class="detail-group-title">Технические нормативы</div>
+                            <div class="detail-row"><div class="detail-label">Марка стали:</div><div class="detail-value"><strong>${cardData.grade || '—'}</strong></div></div>
+                            <div class="detail-row"><div class="detail-label">ГОСТ ТТ / ХА:</div><div class="detail-value">${cardData.fc_gost_tt || '—'} / ${cardData.fc_gost_xa || '—'}</div></div>
+                            <div class="detail-row"><div class="detail-label">ГОСТ сорта:</div><div class="detail-value">${cardData.fc_gost_sort || '—'}</div></div>
+                            <div class="detail-row"><div class="detail-label">Сертификат:</div><div class="detail-value">${cardData.certificate || '—'}</div></div>
+                            <div class="detail-row"><div class="detail-label">Вагон:</div><div class="detail-value">${cardData.wagon_num || '—'}</div></div>
+                            <div class="detail-row"><div class="detail-label">Партия / Группа:</div><div class="detail-value">${cardData.batch || '—'} / ${cardData.group_num || '—'}</div></div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-button edit-btn">Редактировать ФК</button>
+                        <button class="action-button view-sheets-btn">Посмотреть листы</button>
+                        <button class="action-button close-sheets-btn">Закрыть ФК</button>
+                        <button class="action-button delete-btn">Удалить ФК</button>
+                    </div>
+                `;
+                handleButtonActions(cardId, cardData);
+            } catch (error) {
+                container.innerHTML = `<div class="error">${error.message || 'Сбой получения данных'}</div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComponents();
+            displayCardData();
+        });
+    </script>
+</body>
+</html>

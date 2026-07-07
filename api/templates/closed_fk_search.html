@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Поиск закрытых формировочных карточек</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #1a1a1a; --bg-secondary: #2d2d2d; --bg-card: #2d2d2d;
+            --text-primary: #ffffff; --text-secondary: #b0b0b0; --text-muted: #808080;
+            --border-color: #404040; --primary-color: #ff6b00; --primary-hover: #e06000;
+            --success-color: #28a745; --warning-color: #ffc107; --danger-color: #dc3545;
+            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            --table-header-bg: #333333; --table-row-hover: #3d3d3d;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3);
+            --fc-header-text: #e0e0e0;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5; --bg-secondary: #ffffff; --bg-card: #ffffff;
+            --text-primary: #1a1a1a; --text-secondary: #555555; --text-muted: #888888;
+            --border-color: #e0e0e0; --primary-color: #ff6b00; --primary-hover: #e06000;
+            --success-color: #28a745; --warning-color: #ffc107; --danger-color: #dc3545;
+            --header-bg: linear-gradient(135deg, #2d2d2d 0%, #4a4a4a 100%);
+            --table-header-bg: #f0f0f0; --table-row-hover: #f9f9f9;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05);
+            --fc-header-text: #666666;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); transition: all 0.3s ease; font-size: 15px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .card-animate { animation: fadeIn 0.3s ease-out; }
+        .header { background: var(--header-bg); color: white; padding: 1rem 2rem; box-shadow: var(--shadow-lg); position: sticky; top: 0; z-index: 100; }
+        .header-content { max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+        .header h1 i { font-size: 1.8rem; color: var(--primary-color); }
+        .theme-toggle { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.95rem; }
+        .theme-toggle:hover { background: rgba(255,255,255,0.2); }
+        .main-layout { display: flex; gap: 1.5rem; max-width: 1600px; margin: 1.5rem auto; padding: 0 1.5rem; }
+        .content-area { flex: 3; min-width: 0; }
+        .sidebar { flex: 1; min-width: 300px; position: sticky; top: 80px; height: fit-content; max-height: calc(100vh - 100px); overflow-y: auto; }
+        .filters-card { background: var(--bg-card); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
+        .filter-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .filter-group label { font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        .filter-group input { padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .filter-group input:focus { outline: none; border-color: var(--primary-color); }
+        .sort-bar { margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+        .sort-bar label { font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        .sort-bar select { padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .sort-bar button { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
+        .cards-table { background: var(--bg-card); border-radius: 0.75rem; overflow-x: auto; box-shadow: var(--shadow-md); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.8rem; background: var(--table-header-bg); font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border-color); font-size: 0.95rem; cursor: pointer; user-select: none; }
+        th:hover { background: var(--table-row-hover); }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; font-size: 0.95rem; }
+        tr:hover td { background: var(--table-row-hover); }
+        .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.4rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; font-size: 0.9rem; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--table-row-hover); }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-success:hover { background: #218838; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger-color); color: white; border: none; }
+        .btn-danger:hover { background: #c82333; transform: translateY(-1px); }
+        .btn-sm { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+        .fc-card { background: var(--bg-card); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow-lg); }
+        .fc-header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-bottom: 2px solid var(--primary-color); padding: 1.25rem; }
+        .fc-header h2 { font-size: 1.6rem; margin-bottom: 0.25rem; color: white; }
+        .fc-header-sub { color: var(--fc-header-text); font-size: 0.95rem; font-weight: 500; }
+        .info-wrapper { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .main-info { flex: 2; background: var(--bg-primary); border-radius: 0.75rem; padding: 1rem; }
+        .worker-info { flex: 1; background: var(--bg-primary); border-radius: 0.75rem; padding: 1rem; }
+        .info-section h3 { margin-bottom: 0.8rem; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
+        .fc-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.5rem; }
+        .fc-info-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        .fc-info-label { font-weight: 600; color: var(--text-secondary); }
+        .fc-info-value { font-weight: 500; }
+        .sheets-section { padding: 1rem; }
+        .sheets-table-container { overflow-x: auto; margin-top: 0.8rem; }
+        .sheets-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .sheets-table th, .sheets-table td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .sheets-table th { background: var(--table-header-bg); font-weight: 600; }
+        .sheets-table tr:hover { background: var(--table-row-hover); }
+        .sheet-link { color: var(--primary-color); cursor: pointer; text-decoration: none; font-weight: 500; }
+        .sheet-link:hover { text-decoration: underline; }
+        .sheet-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+        .modal { background: var(--bg-card); border-radius: 0.75rem; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-lg { max-width: 1400px; width: 95%; }
+        .modal-header { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-card); z-index: 10; }
+        .modal-body { padding: 1rem; }
+        .modal-footer { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.8rem; position: sticky; bottom: 0; background: var(--bg-card); }
+        .form-group { margin-bottom: 0.8rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; font-weight: 500; color: var(--text-secondary); font-size: 0.9rem; }
+        .form-group input, .form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-primary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .logs-sidebar { background: var(--bg-card); border-radius: 0.75rem; padding: 1rem; box-shadow: var(--shadow-md); }
+        .logs-sidebar h3 { margin-bottom: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
+        .logs-list { max-height: 500px; overflow-y: auto; }
+        .log-item { border-left: 3px solid var(--primary-color); padding: 0.6rem; margin-bottom: 0.6rem; background: var(--bg-primary); border-radius: 0.4rem; font-size: 0.85rem; }
+        .log-time { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+        .log-user { font-weight: 600; color: var(--primary-color); font-size: 0.85rem; margin-bottom: 0.3rem; }
+        .log-changes { margin-top: 0.3rem; font-size: 0.8rem; }
+        .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background: var(--success-color); color: white; }
+        .other-fc-container { margin-top: 1rem; padding: 1rem; background: var(--bg-primary); border-radius: 0.6rem; text-align: center; }
+        .other-fc-container h4 { margin-bottom: 0.8rem; color: var(--text-secondary); font-size: 0.95rem; }
+        .other-fc-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; }
+        .other-fc-btn { padding: 0.6rem 1.2rem; background: var(--primary-color); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; }
+        .other-fc-btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .edit-sheets-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.5rem; }
+        .edit-sheets-table th, .edit-sheets-table td { padding: 0.3rem; border: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+        .edit-sheets-table input { width: 100%; padding: 0.2rem; font-size: 0.8rem; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 0.3rem; }
+        .sort-indicator { margin-left: 0.25rem; font-size: 0.75rem; }
+        .loading { display: flex; justify-content: center; align-items: center; height: 400px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 0.8rem; }
+        @media (max-width: 1024px) { .main-layout { flex-direction: column; } .sidebar { position: static; max-height: none; } }
+        @media (max-width: 768px) {
+            .main-layout { padding: 0 1rem; margin: 1rem auto; }
+            .header { padding: 0.8rem 1rem; }
+            .header h1 { font-size: 1.2rem; }
+            .fc-header h2 { font-size: 1.3rem; }
+            .filters-grid { grid-template-columns: 1fr; }
+            th, td { padding: 0.5rem; font-size: 0.85rem; }
+            .info-wrapper { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+<script>
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+const { useState, useEffect } = React;
+const WORKER_ID = 1;
+
+async function fetchFormationCardsList(filters = {}) {
+    try {
+        const requestBody = {
+            fields: [
+                'card_id', 'order_id', 'way', 'closed', 'deleted',
+                'fc_gost_tt', 'fc_gost_xa', 'fc_gost_sort',
+                'shipment_date', 'batch', 'grade', 'position', 'created_date'
+            ],
+            filters: filters,
+            order_by: 'card_id',
+            order_direction: 'ASC',
+            page_size: 1000,
+            page_number: 1
+        };
+        const response = await fetch(`/api/formation_cards/get`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data.filter(card => card.closed === true && card.deleted !== true) : [];
+    } catch (error) {
+        console.error('Ошибка при получении карточек:', error);
+        throw error;
+    }
+}
+async function fetchCardData(cardId) {
+    if (!cardId) throw new Error('ID карты не указан');
+    const response = await fetch(`/api/formation_cards/get/${cardId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+    if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+    return await response.json();
+}
+async function fetchSheetsData(cardId) {
+    try {
+        const response = await fetch(`/api/formation_cards/get/${cardId}/sheets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка при получении листов:', error);
+        return [];
+    }
+}
+async function fetchWorkerInfo(workerId) {
+    try {
+        const response = await fetch(`/api/workers/get/${workerId}`, {
+            method: 'GET', headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) { console.error('Ошибка при получении данных работника:', error); return null; }
+}
+function getCardIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id');
+}
+
+function App() {
+    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+    const [filters, setFilters] = useState({ card_id: '', order_id: '', grade: '', position: '' });
+    const [sortBy, setSortBy] = useState({ field: 'card_id', direction: 'ASC' });
+    const [loading, setLoading] = useState(true);
+    const [cards, setCards] = useState([]);
+    const [error, setError] = useState(null);
+    const [sheetsCount, setSheetsCount] = useState({});
+
+    useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('theme', theme); }, [theme]);
+    const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    useEffect(() => { loadCards(); }, []);
+
+    const loadCards = async () => {
+        setLoading(true); setError(null);
+        try {
+            const apiFilters = {};
+            if (filters.card_id) apiFilters.card_id = parseInt(filters.card_id);
+            if (filters.order_id) apiFilters.order_id = parseInt(filters.order_id);
+            if (filters.grade) apiFilters.grade = filters.grade;
+            if (filters.position) apiFilters.position = filters.position;
+            Object.keys(apiFilters).forEach(key => { if (apiFilters[key] === undefined || apiFilters[key] === '' || isNaN(apiFilters[key])) delete apiFilters[key]; });
+            const data = await fetchFormationCardsList(apiFilters);
+            const sorted = [...data].sort((a, b) => {
+                const av = a[sortBy.field] ?? '';
+                const bv = b[sortBy.field] ?? '';
+                if (av === bv) return 0;
+                const res = av > bv ? 1 : -1;
+                return sortBy.direction === 'ASC' ? res : -res;
+            });
+            setCards(sorted);
+            const counts = {};
+            for (const card of sorted) {
+                try { counts[card.card_id] = (await fetchSheetsData(card.card_id)).length; }
+                catch(e) { counts[card.card_id] = 0; }
+            }
+            setSheetsCount(counts);
+        } catch (err) { setError(err.message || 'Не удалось загрузить данные'); }
+        finally { setLoading(false); }
+    };
+    const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
+    const applyFilters = () => loadCards();
+    const resetFilters = () => { setFilters({ card_id: '', order_id: '', grade: '', position: '' }); setSortBy({ field: 'card_id', direction: 'ASC' }); setTimeout(() => loadCards(), 100); };
+    const handleSortChange = (e) => { const [field, direction] = e.target.value.split('|'); setSortBy({ field, direction }); setTimeout(() => loadCards(), 0); };
+    const openCardView = (card) => { window.location.href = `/html/closed_fk_view/?id=${card.card_id}`; };
+
+    if (loading) return React.createElement('div', { className: 'loading' }, React.createElement('div', { className: 'spinner' }));
+    if (error) return React.createElement('div', { className: 'empty-state' }, React.createElement('i', { className: 'fas fa-exclamation-triangle', style: { color: 'var(--danger-color)' } }), React.createElement('h2', null, 'Ошибка загрузки данных'), React.createElement('p', null, error), React.createElement('button', { className: 'btn btn-primary', onClick: loadCards, style: { marginTop: '1rem' } }, React.createElement('i', { className: 'fas fa-sync-alt' }), ' Повторить попытку'));
+
+    return React.createElement('div', { className: 'app' },
+        React.createElement('div', { className: 'header' }, React.createElement('div', { className: 'header-content' },
+            React.createElement('h1', null, React.createElement('i', { className: 'fas fa-folder-closed' }), ' Закрытые формировочные карточки'),
+            React.createElement('button', { className: 'theme-toggle', onClick: toggleTheme }, React.createElement('i', { className: 'fas ' + (theme === 'dark' ? 'fa-sun' : 'fa-moon') }), theme === 'dark' ? ' Светлая тема' : ' Темная тема')
+        )),
+        React.createElement('div', { className: 'main-layout' }, React.createElement('div', { className: 'content-area' },
+            React.createElement('div', { className: 'filters-card' },
+                React.createElement('h3', null, React.createElement('i', { className: 'fas fa-filter' }), ' Фильтры'),
+                React.createElement('div', { className: 'filters-grid' },
+                    React.createElement('div', { className: 'filter-group' }, React.createElement('label', null, 'ID ФК'), React.createElement('input', { type: 'text', placeholder: 'Поиск по ID...', value: filters.card_id, onChange: e => handleFilterChange('card_id', e.target.value) })),
+                    React.createElement('div', { className: 'filter-group' }, React.createElement('label', null, 'Номер заказа'), React.createElement('input', { type: 'text', placeholder: 'Поиск по заказу...', value: filters.order_id, onChange: e => handleFilterChange('order_id', e.target.value) })),
+                    React.createElement('div', { className: 'filter-group' }, React.createElement('label', null, 'Марка стали'), React.createElement('input', { type: 'text', placeholder: 'Поиск по марке...', value: filters.grade, onChange: e => handleFilterChange('grade', e.target.value) })),
+                    React.createElement('div', { className: 'filter-group' }, React.createElement('label', null, 'Позиция'), React.createElement('input', { type: 'text', placeholder: 'Поиск по позиции...', value: filters.position, onChange: e => handleFilterChange('position', e.target.value) }))
+                ),
+                React.createElement('div', { className: 'sort-bar', style: { marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' } },
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } }, React.createElement('label', null, 'Сортировка:'), React.createElement('select', { value: `${sortBy.field}|${sortBy.direction}`, onChange: handleSortChange },
+                        React.createElement('option', { value: 'card_id|ASC' }, 'ID ФК (по возрастанию)'), React.createElement('option', { value: 'card_id|DESC' }, 'ID ФК (по убыванию)'), React.createElement('option', { value: 'order_id|ASC' }, 'Номер заказа (по возрастанию)'), React.createElement('option', { value: 'order_id|DESC' }, 'Номер заказа (по убыванию)'), React.createElement('option', { value: 'grade|ASC' }, 'Марка стали (А-Я)'), React.createElement('option', { value: 'grade|DESC' }, 'Марка стали (Я-А)')
+                    )),
+                    React.createElement('div', { style: { display: 'flex', gap: '0.5rem' } }, React.createElement('button', { className: 'btn btn-primary', onClick: applyFilters }, React.createElement('i', { className: 'fas fa-search' }), ' Поиск'), React.createElement('button', { className: 'btn btn-outline', onClick: resetFilters }, React.createElement('i', { className: 'fas fa-times' }), ' Сбросить'))
+                )
+            ),
+            React.createElement('div', { className: 'cards-table' }, React.createElement('table', null,
+                React.createElement('thead', null, React.createElement('tr', null, React.createElement('th', null, 'ID ФК'), React.createElement('th', null, 'Номер заказа'), React.createElement('th', null, 'Направление'), React.createElement('th', null, 'Марка стали'), React.createElement('th', null, 'Позиция'), React.createElement('th', null, 'Кол-во листов'))),
+                React.createElement('tbody', null,
+                    cards.map(card => React.createElement('tr', { key: card.card_id, onClick: () => openCardView(card) }, React.createElement('td', null, React.createElement('strong', null, '#' + card.card_id)), React.createElement('td', null, card.order_id), React.createElement('td', null, card.way || '-'), React.createElement('td', null, card.grade || '-'), React.createElement('td', null, card.position || '-'), React.createElement('td', null, React.createElement('span', { className: 'badge badge-success' }, sheetsCount[card.card_id] || 0)))),
+                    cards.length === 0 && React.createElement('tr', null, React.createElement('td', { colSpan: '6', className: 'empty-state' }, React.createElement('i', { className: 'fas fa-inbox' }), React.createElement('p', null, 'Карточки не найдены')))
+                )
+            ))
+        ))
+    );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+</script></body></html>

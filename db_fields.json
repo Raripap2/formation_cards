@@ -1,0 +1,97 @@
+{
+  "formation_cards": [
+    "card_id",
+    "order_id",
+    "way",
+    "closed"
+  ],
+  "formation_cards_info": [
+    "card_id",
+    "fc_gost_tt",
+    "fc_gost_xa",
+    "fc_gost_sort",
+    "shipment_date",
+    "wagon_num",
+    "batch",
+    "grade",
+    "group_num",
+    "certificate",
+    "position",
+    "created_date"
+  ],
+  "sheets": [
+    "sheet_id",
+    "card_id"
+  ],
+  "logs": [
+    "log_id",
+    "old_values",
+    "new_values",
+    "worker_id",
+    "log_date",
+    "log_message"
+  ],
+  "rolling_task": [
+    "dt_task_roll",
+    "task_pos",
+    "orders",
+    "ord_pos",
+    "grade_code",
+    "grade_name",
+    "plate_t",
+    "plate_w",
+    "plate_l",
+    "gost_tt",
+    "gost_xa",
+    "gost_sort",
+    "heat",
+    "num_1",
+    "cnt_p",
+    "num_n",
+    "batch",
+    "inbatch",
+    "kdup"
+  ],
+  "fac_sheets": [
+    "sheet_id",
+    "marking_time",
+    "sb_order",
+    "cut_part_num",
+    "heat",
+    "batch",
+    "tech_violation_code",
+    "num_1",
+    "grade",
+    "carb_eqiv",
+    "crack_resist",
+    "plate_t",
+    "plate_w",
+    "plate_l"
+  ],
+  "statuses": [
+    "status_id",
+    "status_name"
+  ],
+  "fac_workers_info": [
+    "worker_id",
+    "firstname",
+    "lastname",
+    "secondname",
+    "shift",
+    "brigade"
+  ],
+  "fac_workers": [
+    "worker_id",
+    "login",
+    "password",
+    "status_id"
+  ],
+  "dates": [
+    "shipment_date",
+    "created_date",
+    "marking_time",
+    "log_date",
+    "dt_task_roll",
+    "marking_time"
+  ]
+}

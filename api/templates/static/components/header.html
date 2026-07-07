@@ -1,0 +1,106 @@
+<style>
+    .global-header {
+        background-color: #ffffff;
+        color: #000000;
+        padding: 0 30px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #e5e7eb;
+        box-sizing: border-box;
+    }
+
+    .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .header-logo-img {
+        height: 48px; /* Чуть-чуть увеличил для читаемости */
+        width: auto;
+        display: block;
+    }
+
+    .header-title {
+        font-size: 18px; /* Сделал крупнее */
+        font-weight: 800; /* Максимально жирный */
+        letter-spacing: 0.5px;
+        color: #000000; /* Абсолютный чёрный */
+        text-transform: uppercase;
+        border-left: 2px solid #e5e7eb;
+        padding-left: 15px;
+    }
+
+    .header-nav {
+        display: flex;
+        gap: 10px;
+        height: 100%;
+    }
+
+    .nav-link {
+        color: #000000; /* Ссылки теперь полностью чёрные */
+        text-decoration: none;
+        font-size: 16px; /* Увеличил размер шрифта */
+        font-weight: 700; /* Сделал текст более плотным/жирным */
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        position: relative; /* Нужно для позиционирования линии */
+        transition: color 0.2s ease;
+    }
+
+    /* Создаем скрытую оранжевую полоску снизу через псевдоэлемент */
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 4px; /* Толщина как на странице allfk */
+        background-color: #f25c22; /* Оранжевый цвет пламени */
+        transform: scaleX(0); /* Изначально сжата до 0 */
+        transition: transform 0.2s ease-in-out;
+    }
+
+    /* Эффект при наведении — линия плавно расширяется */
+    .nav-link:hover {
+        color: #f25c22;
+    }
+
+    .nav-link:hover::after {
+        transform: scaleX(1); /* Расширяется на всю ширину */
+    }
+
+    /* Активная вкладка (всегда с линией) */
+    .nav-link.active {
+        color: #000000;
+    }
+
+    .nav-link.active::after {
+        transform: scaleX(1);
+    }
+</style>
+
+<header class="global-header">
+    <div class="header-brand">
+        <img src="/static/images/logo.png" alt="Уральская Сталь" class="header-logo-img">
+        <div class="header-title">ЛПЦ-1</div>
+    </div>
+    <nav class="header-nav">
+        <a href="/html/allfk/" class="nav-link" id="nav-fk">Формировочные карточки</a>
+        <a href="/html/sheets/" class="nav-link" id="nav-sheets">Привязка листов</a>
+        <a href="/html/allsheets/" class="nav-link" id="nav-allsheets">Список листов</a>
+    </nav>
+</header>
+
+<script>
+    // Автоматическая подсветка активной вкладки по текущему URL
+    document.addEventListener("DOMContentLoaded", () => {
+        const path = window.location.pathname;
+        if (path.includes("/formation_cards/")) document.getElementById("nav-fk")?.classList.add("active");
+        else if (path.includes("/allsheets/")) document.getElementById("nav-allsheets")?.classList.add("active");
+        else if (path.includes("/sheets/")) document.getElementById("nav-sheets")?.classList.add("active");
+    });
+</script>

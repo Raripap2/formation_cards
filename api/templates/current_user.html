@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль пользователя</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0; padding: 0; background-color: #f3f4f6; color: #111827; font-size: 14px;
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+        .container {
+            padding: 24px; max-width: 900px; width: 100%; margin: 0 auto; flex: 1;
+            box-sizing: border-box; background-color: #ffffff; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
+        }
+
+        .back-button {
+            display: inline-flex; align-items: center; padding: 8px 16px; margin-bottom: 20px;
+            background-color: #ffffff; color: #22252a; text-decoration: none; border-radius: 4px;
+            border: 1px solid #d1d5db; font-weight: 600; transition: all 0.1s ease;
+        }
+        .back-button:hover { background-color: #f3f4f6; }
+
+        .profile-card { background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 4px; padding: 24px; }
+
+        .profile-header { display: flex; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid #22252a; }
+        .profile-avatar {
+            width: 70px; height: 70px; border-radius: 50%; background-color: #22252a; color: #f25c22;
+            display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; margin-right: 20px;
+            border: 2px solid #e5e7eb;
+        }
+        .profile-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+        .profile-role { color: #4b5563; font-weight: 600; font-size: 14px; }
+
+        .detail-row { display: flex; padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
+        .detail-label { font-weight: 700; width: 150px; color: #4b5563; text-transform: uppercase; font-size: 12px; }
+        .detail-value { flex: 1; font-weight: 500; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+        .btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; border: none; }
+        .btn-edit { background-color: #22252a; color: white; }
+        .btn-edit:hover { background-color: #111316; }
+        .btn-delete { background-color: #ffffff; color: #c5221f; border: 1px solid #fad2cf; margin-left: auto; }
+        .btn-delete:hover { background-color: #fce8e6; }
+
+        .loading, .error { text-align: center; padding: 40px; color: #4b5563; font-weight: 600; }
+
+        /* Модальное окно редактирования */
+        .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: #ffffff; padding: 24px; border-radius: 4px; width: 500px; max-width: 90%; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-top: 4px solid #f25c22; }
+        .modal-title { font-size: 18px; font-weight: 700; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #f25c22; box-shadow: 0 0 0 2px rgba(242, 92, 34, 0.1); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; }
+        .btn-cancel { background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; }
+        .btn-cancel:hover { background-color: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <a href="/html/allusers/" class="back-button">← К списку сотрудников</a>
+        <div class="profile-card" id="userProfile">
+            <div class="loading">Загрузка карточки сотрудника...</div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <div class="modal-overlay" id="editOverlay">
+        <div class="modal-content">
+            <div class="modal-title">Редактирование профиля</div>
+            <div id="editForm"></div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" id="cancelEdit">Отмена</button>
+                <button class="btn btn-edit" id="saveChanges">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        let currentUserData = null;
+
+        async function loadComponents() {
+            try {
+                const headerRes = await fetch('/static/components/header.html');
+                if (headerRes.ok) document.getElementById('header-placeholder').innerHTML = await headerRes.text();
+                const footerRes = await fetch('/static/components/footer.html');
+                if (footerRes.ok) document.getElementById('footer-placeholder').innerHTML = await footerRes.text();
+            } catch (error) { console.error(error); }
+        }
+
+        async function fetchUserData() {
+            try {
+                const response = await fetch('/api/workers/get/', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ worker_id: parseInt(userId) })
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                return await response.json();
+            } catch (error) { return null; }
+        }
+
+        function getInitials(u) { return `${u.firstname?.[0] || ''}${u.lastname?.[0] || ''}`.toUpperCase(); }
+
+        async function displayUserData() {
+            const container = document.getElementById('userProfile');
+            if (!userId) { container.innerHTML = '<div class="error">ID пользователя не указан</div>'; return; }
+
+            currentUserData = await fetchUserData();
+            if (!currentUserData) { container.innerHTML = '<div class="error">Не удалось загрузить данные</div>'; return; }
+
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="profile-avatar">${getInitials(currentUserData)}</div>
+                    <div>
+                        <div class="profile-name">${currentUserData.lastname || ''} ${currentUserData.firstname || ''} ${currentUserData.secondname || ''}</div>
+                        <div class="profile-role">Уровень доступа: ${currentUserData.status_name || 'Не определен'}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="detail-row"><div class="detail-label">ID Системы:</div><div class="detail-value">${currentUserData.worker_id || '—'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Фамилия:</div><div class="detail-value">${currentUserData.lastname || '—'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Имя:</div><div class="detail-value">${currentUserData.firstname || '—'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Отчество:</div><div class="detail-value">${currentUserData.secondname || '—'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Бригада:</div><div class="detail-value">№ ${currentUserData.brigade || '—'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Смена:</div><div class="detail-value">${currentUserData.shift || '—'}</div></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-edit" id="editButton">Изменить данные</button>
+                    <button class="btn btn-delete" id="deleteButton">Удалить сотрудника</button>
+                </div>
+            `;
+
+            document.getElementById('editButton').addEventListener('click', showEditForm);
+            document.getElementById('deleteButton').addEventListener('click', deleteUser);
+        }
+
+        function showEditForm() {
+            const form = document.getElementById('editForm');
+            form.innerHTML = `
+                <div class="form-group"><label>Фамилия</label><input type="text" id="editLastName" value="${currentUserData.lastname || ''}"></div>
+                <div class="form-group"><label>Имя</label><input type="text" id="editFirstName" value="${currentUserData.firstname || ''}"></div>
+                <div class="form-group"><label>Отчество</label><input type="text" id="editSecondName" value="${currentUserData.secondname || ''}"></div>
+                <div class="form-group"><label>Бригада</label><input type="number" id="editBrigade" value="${currentUserData.brigade || ''}"></div>
+                <div class="form-group"><label>Смена</label><input type="number" id="editShift" value="${currentUserData.shift || ''}"></div>
+                <div class="form-group"><label>Уровень доступа</label>
+                    <select id="editStatus">
+                        <option value="0" ${currentUserData.status_id == 0 ? 'selected' : ''}>Режим бога</option>
+                        <option value="1" ${currentUserData.status_id == 1 ? 'selected' : ''}>Руководитель</option>
+                        <option value="2" ${currentUserData.status_id == 2 ? 'selected' : ''}>Оператор</option>
+                        <option value="3" ${currentUserData.status_id == 3 ? 'selected' : ''}>Гость</option>
+                        <option value="4" ${currentUserData.status_id == 4 ? 'selected' : ''}>Модератор пользователей</option>
+                    </select>
+                </div>
+            `;
+            document.getElementById('editOverlay').style.display = 'flex';
+        }
+
+        function hideEditForm() { document.getElementById('editOverlay').style.display = 'none'; }
+        document.getElementById('cancelEdit').addEventListener('click', hideEditForm);
+
+        document.getElementById('saveChanges').addEventListener('click', async () => {
+            const updatedData = {
+                worker_id: parseInt(userId), worker_id_to_edit: parseInt(userId),
+                params: {
+                    lastname: document.getElementById('editLastName').value,
+                    firstname: document.getElementById('editFirstName').value,
+                    secondname: document.getElementById('editSecondName').value,
+                    brigade: parseInt(document.getElementById('editBrigade').value) || null,
+                    shift: parseInt(document.getElementById('editShift').value) || null
+                },
+                status_id: parseInt(document.getElementById('editStatus').value)
+            };
+            try {
+                const response = await fetch('/api/workers/edit/', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData)
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP`);
+                const result = await response.json();
+                if (result.success) {
+                    hideEditForm();
+                    displayUserData();
+                } else throw new Error('Ошибка сервера');
+            } catch (error) { alert('Не удалось сохранить изменения'); }
+        });
+
+        async function deleteUser() {
+            if (!confirm('Безвозвратно удалить этого сотрудника из системы?')) return;
+            try {
+                const response = await fetch('/api/workers/delete', {
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ worker_id: parseInt(userId) })
+                });
+                if (!response.ok) throw new Error(`Ошибка HTTP`);
+                window.location.href = '/html/allusers/';
+            } catch (error) { alert('Не удалось удалить пользователя'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { loadComponents(); displayUserData(); });
+    </script>
+</body>
+</html>
